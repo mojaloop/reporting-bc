@@ -33,11 +33,14 @@ import {
     TransferFulfiledEvt,
     TransferPreparedEvt,
     TransferRejectRequestProcessedEvt,
-    TransfersBCTopics
+    TransfersBCTopics,
+    TransferPreparedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IMessage, IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { IReportingTransferObject, TransferState } from "../types/transfers";
+
 
 export class TransfersReportingEventHandler{
     private _logger: ILogger;
@@ -48,7 +51,7 @@ export class TransfersReportingEventHandler{
         this._messageConsumer = messageConsumer;
     }
 
-    async start():Promise<void>{
+    async start(): Promise<void> {
         // create and start the consumer handler
         this._messageConsumer.setTopics([TransfersBCTopics.DomainRequests, TransfersBCTopics.DomainEvents, TransfersBCTopics.TimeoutEvents]);
 
@@ -57,7 +60,7 @@ export class TransfersReportingEventHandler{
         await this._messageConsumer.startAndWaitForRebalance();
     }
 
-    private async _batchMsgHandler(receivedMessages: IMessage[]): Promise<void>{
+    private async _batchMsgHandler(receivedMessages: IMessage[]): Promise<void> {
         console.log(`Got message batch in TransfersEventHandler batch size: ${receivedMessages.length}`);
 
         // this needs to never break
@@ -83,17 +86,37 @@ export class TransfersReportingEventHandler{
         });
     }
 
-    private async _handleTransferPreparedEvt(event:TransferPreparedEvt):Promise<void>{
-        // TODO update the reporting db with the state of this prepared transfer (create it)
+    private async _handleTransferPreparedEvt(event: TransferPreparedEvt): Promise<void> {
+        const now = Date.now();
+        const payload: TransferPreparedEvtPayload = event.payload;
+
+        const transfer: IReportingTransferObject = {
+            createdAt: now,
+            updatedAt: now,
+            transferId: payload.transferId,
+            payeeFspId: payload.payeeFsp,
+            payerFspId: payload.payerFsp,
+            amount: payload.amount,
+            currencyCode: payload.currencyCode,
+            ilpPacket: payload.ilpPacket,
+            condition: payload.condition,
+            expirationTimestamp: payload.expiration,
+            transferState: TransferState.RESERVED,
+            fulfilment: null,
+            completedTimestamp: null,
+            settlementModel: "DEFAULT", // Set as DEFAULT for now
+        };
+
 
     }
 
-    private async _handleTransferFulfiledEvt(event:TransferFulfiledEvt):Promise<void>{
+    private async _handleTransferFulfiledEvt(event: TransferFulfiledEvt):Promise<void>{
         // TODO update the reporting db with the new state of this transfer (now fulfiled)
 
         // TODO update day totals
     }
-    private async _handleTransferRejectRequestProcessedEvt(event:TransferRejectRequestProcessedEvt):Promise<void>{
+
+    private async _handleTransferRejectRequestProcessedEvt(event: TransferRejectRequestProcessedEvt): Promise<void> {
         // TODO update the reporting db with the new state of this transfer (rejected)
     }
 

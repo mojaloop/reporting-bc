@@ -38,7 +38,14 @@ import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 
 import process from "process";
 import util from "util";
-import {MLKafkaJsonConsumerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {
+    MLKafkaJsonConsumerOptions, 
+    MLKafkaJsonConsumer,
+} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import { TransfersReportingEventHandler } from "./event_handler";
+import { IMessageConsumer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { MongoTransfersReportingRepo } from "../implementations/mongodb_repo";
+import { ITransfersReportingRepo } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
@@ -50,6 +57,7 @@ const APP_VERSION = packageJSON.version;
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 
+const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
@@ -80,9 +88,14 @@ export class Service {
     static app: Express;
     static expressServer: Server;
     static startupTimer: NodeJS.Timeout;
+    static handler: TransfersReportingEventHandler;
+    static messageConsumer: IMessageConsumer;
+    static transfersRpRepo: ITransfersReportingRepo;
 
     static async start(
-        logger?: ILogger
+        logger?: ILogger,
+        messageConsumer?: IMessageConsumer,
+        transfersRpRepo?: ITransfersReportingRepo,
     ):Promise<void>{
         console.log(`Service starting with PID: ${process.pid}`);
 
@@ -123,8 +136,31 @@ export class Service {
         await this.configClient.fetch();
         */
 
+        if (!messageConsumer) {
+			const consumerHandlerLogger = logger.createChild("handlerConsumer");
+			consumerHandlerLogger.setLogLevel(LogLevel.INFO);
+			messageConsumer = new MLKafkaJsonConsumer(kafkaConsumerOptions, consumerHandlerLogger);
+		}
+		this.messageConsumer = messageConsumer;
 
-        // TODO start actual service code
+        // create handler and start it
+        this.handler = new TransfersReportingEventHandler(this.logger, this.messageConsumer);
+        await this.handler.start();
+
+        // Mongo DB repo initialization
+        if (!transfersRpRepo) {
+			const DB_NAME_REPORTING = process.env.REPORTING_DB_NAME ?? "reporting";
+
+			transfersRpRepo = new MongoTransfersReportingRepo(
+				logger,
+				MONGO_URL,
+				DB_NAME_REPORTING
+			);
+
+			await transfersRpRepo.init();
+			logger.info("Transfer Registry Repo Initialized");
+		}
+		this.transfersRpRepo = transfersRpRepo;
 
         await this.setupExpress();
 
