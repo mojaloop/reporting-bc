@@ -143,10 +143,6 @@ export class Service {
 		}
 		this.messageConsumer = messageConsumer;
 
-        // create handler and start it
-        this.handler = new TransfersReportingEventHandler(this.logger, this.messageConsumer);
-        await this.handler.start();
-
         // Mongo DB repo initialization
         if (!transfersRpRepo) {
 			const DB_NAME_REPORTING = process.env.REPORTING_DB_NAME ?? "reporting";
@@ -161,6 +157,10 @@ export class Service {
 			logger.info("Transfer Registry Repo Initialized");
 		}
 		this.transfersRpRepo = transfersRpRepo;
+
+        // create handler and start it
+        this.handler = new TransfersReportingEventHandler(this.logger, this.messageConsumer, this.transfersRpRepo);
+        await this.handler.start();
 
         await this.setupExpress();
 
@@ -212,6 +212,9 @@ export class Service {
         }
 
         // Stop everything else here
+        if (this.messageConsumer) await this.messageConsumer.destroy(true);
+
+        if (this.transfersRpRepo) await this.transfersRpRepo.destroy();
 
         if (this.logger && this.logger instanceof KafkaLogger) await this.logger.destroy();
     }

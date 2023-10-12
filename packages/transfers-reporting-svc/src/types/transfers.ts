@@ -48,7 +48,6 @@ export interface IExtensionList {
 export interface IErrorInformation {
     errorCode: string;
     errorDescription: string;
-    extensionList: IExtensionList
 }
 
 export interface IDailyTransferStats {
@@ -80,8 +79,8 @@ export interface IReportingTransferObject {
 	transferState: TransferState,
 	completedTimestamp: number | null,
 
-    // extensionList: IExtensionList | null;
-    // errorInformation: IErrorInformation | null;
+    extensionList: IExtensionList | null;
+    errorInformation: IErrorInformation | null;
 
 	// populated from the settlements lib during prepare
 	settlementModel: string | "DEFAULT";

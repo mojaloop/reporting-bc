@@ -35,7 +35,7 @@ import { IReportingTransferObject } from "./transfers";
 export interface ITransfersReportingRepo {
     init(): Promise<void>;
 	destroy(): Promise<void>;
-    updateTransfer(transfer: IReportingTransferObject):Promise<void>;
-    addTransfer(transferObj: IReportingTransferObject): Promise<string>;
-    updateTransfer(transferObj: IReportingTransferObject): Promise<void>;
+    getTransferById(transferId: string): Promise<IReportingTransferObject | null>;
+    addTransfer(transfer: IReportingTransferObject): Promise<string>;
+    updateTransfer(transfer: IReportingTransferObject): Promise<void>;
 }

@@ -35,20 +35,26 @@ import {
     TransferRejectRequestProcessedEvt,
     TransfersBCTopics,
     TransferPreparedEvtPayload,
+    TransferFulfiledEvtPayload,
+    TransferRejectRequestProcessedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IMessage, IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { IReportingTransferObject, TransferState } from "../types/transfers";
+import { ITransfersReportingRepo } from "../types";
+import { UnableToGetTransferError } from "../implementations/errors";
 
 
 export class TransfersReportingEventHandler{
     private _logger: ILogger;
     private _messageConsumer: IMessageConsumer;
+    private _transferRpRepo: ITransfersReportingRepo;
 
-    constructor(logger:ILogger, messageConsumer: IMessageConsumer) {
+    constructor(logger:ILogger, messageConsumer: IMessageConsumer, transferRpRepo: ITransfersReportingRepo) {
         this._logger = logger.createChild(this.constructor.name);
         this._messageConsumer = messageConsumer;
+        this._transferRpRepo = transferRpRepo;
     }
 
     async start(): Promise<void> {
@@ -104,20 +110,66 @@ export class TransfersReportingEventHandler{
             transferState: TransferState.RESERVED,
             fulfilment: null,
             completedTimestamp: null,
+            extensionList: null,
+            errorInformation: null,
             settlementModel: "DEFAULT", // Set as DEFAULT for now
         };
 
+        try {
+            await this._transferRpRepo.addTransfer(transfer);
 
+        } catch (e: unknown) {
+            const errMsg = `Error while adding transfer with transfer ID ${payload.transferId}: ${(e as Error).message}`;
+            this._logger.error(errMsg);
+        }
     }
 
-    private async _handleTransferFulfiledEvt(event: TransferFulfiledEvt):Promise<void>{
-        // TODO update the reporting db with the new state of this transfer (now fulfiled)
+    private async _handleTransferFulfiledEvt(event: TransferFulfiledEvt): Promise<void> {
+        const payload: TransferFulfiledEvtPayload = event.payload;
 
-        // TODO update day totals
+        try {
+            const existingTransfer = await this._transferRpRepo.getTransferById(payload.transferId);
+            if (!existingTransfer) {
+                throw new UnableToGetTransferError();
+            }
+
+            const updatedTransfer: IReportingTransferObject = {
+                ...existingTransfer,
+                updatedAt: Date.now(),
+                transferState: TransferState.COMMITTED,
+                fulfilment: payload.fulfilment,
+                completedTimestamp: payload.completedTimestamp,
+                extensionList: payload.extensionList,
+            };
+
+            await this._transferRpRepo.updateTransfer(updatedTransfer);
+
+        } catch (e: unknown) {
+            const errMsg = `Error while updating transfer with transfer ID ${payload.transferId}: ${(e as Error).message}`;
+            this._logger.error(errMsg);
+        }
     }
 
     private async _handleTransferRejectRequestProcessedEvt(event: TransferRejectRequestProcessedEvt): Promise<void> {
-        // TODO update the reporting db with the new state of this transfer (rejected)
-    }
+        const payload: TransferRejectRequestProcessedEvtPayload = event.payload;
 
+        try {
+            const existingTransfer = await this._transferRpRepo.getTransferById(payload.transferId);
+            if (!existingTransfer) {
+                throw new UnableToGetTransferError();
+            }
+
+            const updatedTransfer: IReportingTransferObject = {
+                ...existingTransfer,
+                transferState: TransferState.ABORTED,
+                errorInformation: payload.errorInformation,
+            };
+
+            await this._transferRpRepo.updateTransfer(updatedTransfer);
+
+        } catch (e: unknown) {
+            const errMsg = `Error while updating transfer with transfer ID ${payload.transferId}: ${(e as Error).message}`;
+            this._logger.error(errMsg);
+        }
+    }
 }
