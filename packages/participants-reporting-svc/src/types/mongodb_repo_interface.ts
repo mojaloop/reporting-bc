@@ -22,59 +22,28 @@
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
 
+ * Crosslake
+ - Pedro Sousa Barreto <pedrob@crosslaketech.com>
+
  * ThitsaWorks
  - Myo Min Htet <myo.htet@thitsaworks.com>
 
  --------------
-******/
+ ******/
+
 "use strict";
 
 import {
-    ParticipantTypes,
-    IParticipantAllowedSourceIp,
-    IParticipantEndpoint,
-    IParticipantAccount,
-    IParticipantFundsMovement,
-    IParticipantNetDebitCap,
-    IParticipantAccountChangeRequest,
-    IParticipantActivityLogEntry,
-    IParticipantNetDebitCapChangeRequest,
-    IParticipantSourceIpChangeRequest,
-    IParticipantContactInfo,
-    IParticipantContactInfoChangeRequest
-} from "@mojaloop/participant-bc-public-types-lib";
+    IParticipant
+} from "./participants";
+import {Collection} from "mongodb";
 
-export declare interface IParticipant {
-    id: string;
-    name: string;
-    type: ParticipantTypes;
-    isActive: boolean;
-    description: string;
+export interface IMongoDbParticipantReportingRepo{
+    init(): Promise<void>;
+      
+    create(participant: IParticipant): Promise<boolean>;
 
-    createdBy: string;
-    createdDate: number;
+    store(participant: IParticipant): Promise<boolean>;
 
-    approved: boolean;
-    approvedBy: string | null;
-    approvedDate: number | null;
-
-    lastUpdated: number;
-
-    participantAllowedSourceIps: IParticipantAllowedSourceIp[];
-    participantSourceIpChangeRequests: IParticipantSourceIpChangeRequest[];
-
-    participantEndpoints: IParticipantEndpoint[];
-    participantAccounts: IParticipantAccount[];
-    participantAccountsChangeRequest: IParticipantAccountChangeRequest[];
-
-    fundsMovements: IParticipantFundsMovement[];
-    changeLog: IParticipantActivityLogEntry[];
-
-    netDebitCaps: IParticipantNetDebitCap[];
-    netDebitCapChangeRequests: IParticipantNetDebitCapChangeRequest[];
-
-    participantContacts: IParticipantContactInfo[];
-    participantContactInfoChangeRequests: IParticipantContactInfoChangeRequest[];
-  }
-  
-  
+    destroy(): Promise<void>;
+}

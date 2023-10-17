@@ -40,13 +40,16 @@
     "dependencies": {
         "@mojaloop/logging-bc-client-lib": "~0.1.26",
         "@mojaloop/logging-bc-public-types-lib": "~0.1.19",
-        "@mojaloop/participant-bc-public-types-lib": "~0.0.16",
-        "@mojaloop/platform-configuration-bc-client-lib": "~0.1.18",
+        "@mojaloop/participants-bc-client-lib": "~0.1.14",
+        "@mojaloop/participant-bc-public-types-lib": "~0.0.18",
+        "@mojaloop/platform-configuration-bc-client-lib": "~0.3.4",
         "@mojaloop/platform-configuration-bc-public-types-lib": "0.2.1",
-        "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.67",
+        "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "^0.3.67",
+        "@mojaloop/security-bc-public-types-lib": "~0.2.1",
         "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.152",
         "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.101",
-        "express": "^4.18.2"
+        "express": "^4.18.2",
+        "mongodb": "~5.5.0"
     },
     "devDependencies": {
         "@mojaloop/logging-bc-public-types-lib": "^0.1.14",
