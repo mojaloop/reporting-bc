@@ -67,14 +67,14 @@ const APP_NAME = "participants-reporting-svc";
 const APP_VERSION = packageJSON.version;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 
-const SVC_DEFAULT_HTTP_PORT = 3010;
+const SVC_DEFAULT_HTTP_PORT = 5002;
 
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
 
 
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
-const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:example@localhost:27017/";
+const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
 
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 
