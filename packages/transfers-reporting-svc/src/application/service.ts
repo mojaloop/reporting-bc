@@ -48,7 +48,7 @@ import { MongoTransfersReportingRepo } from "../implementations/mongodb_repo";
 import { ITransfersReportingRepo } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const packageJSON = require("../package.json");
+const packageJSON = require("../../package.json");
 
 // constants
 const BC_NAME = "reporting-bc";
@@ -65,7 +65,7 @@ const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/aud
 
 // To be used with AuthenticatedHttpRequester for example
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "reporting-bc-transfers-reporting-svc";
-const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_ID"] || "superServiceSecret";
+const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
 const SVC_DEFAULT_HTTP_PORT = 5001;
 
