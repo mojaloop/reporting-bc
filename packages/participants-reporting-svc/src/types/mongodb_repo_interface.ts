@@ -36,7 +36,6 @@
 import {
     IParticipant
 } from "./participants";
-import {Collection} from "mongodb";
 
 export interface IMongoDbParticipantReportingRepo{
     init(): Promise<void>;

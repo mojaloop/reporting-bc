@@ -31,7 +31,7 @@
 
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { IMessage, IMessageConsumer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { SettlementsBCTopics, ParticipantsBCTopics, ParticipantChangedEvtPayload } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { ParticipantsBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ParticipantChangedEvt } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IParticipantsServiceAdapter } from "../types/participant_adapter_interface";
 import { IMongoDbParticipantReportingRepo } from "../types/mongodb_repo_interface";
@@ -97,12 +97,11 @@ export class ParticipantsReportingEventHandler {
         const participant = await this._participantAdapter.getParticipantInfo(event.payload.participantId);
 
         if (!participant) {
-            throw new Error(`Participant not found with ID: ${event.payload.participantId}`)
+            throw new Error(`Participant not found with ID: ${event.payload.participantId}`);
         }
         if (event.payload.actionName === "PARTICIPANT_CREATED") {
             await this._repo.create(participant);
-        }
-        else {
+        } else {
             await this._repo.store(participant);
         }
     }

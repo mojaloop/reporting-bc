@@ -48,7 +48,6 @@ import {
     MLKafkaJsonConsumer,
     MLKafkaJsonConsumerOptions
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
 import { 
     AuthenticatedHttpRequester,
     TokenHelper } from "@mojaloop/security-bc-client-lib";
