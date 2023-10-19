@@ -72,17 +72,15 @@ export interface IReportingTransferObject {
 	payerFspId: string;
 	amount: string;
 	currencyCode: string;
-	ilpPacket: string;				// move to opaque object
-	condition: string;				// move to opaque object
-	fulfilment: string | null,		// move to opaque object
 	expirationTimestamp: number;
-	transferState: TransferState,
-	completedTimestamp: number | null,
+	transferState: TransferState;
+	completedTimestamp: number | null;
 
     extensionList: IExtensionList | null;
     errorInformation: IErrorInformation | null;
 
 	// populated from the settlements lib during prepare
 	settlementModel: string | "DEFAULT";
-	// hash: string;
+    preparedAt: number;
+    fulfiledAt: number | null;
 }

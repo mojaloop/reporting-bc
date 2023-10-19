@@ -63,6 +63,9 @@ const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
 
+const CONSUMER_BATCH_SIZE = (process.env["CONSUMER_BATCH_SIZE"] && parseInt(process.env["CONSUMER_BATCH_SIZE"])) || 50;
+const CONSUMER_BATCH_TIMEOUT_MS = (process.env["CONSUMER_BATCH_TIMEOUT_MS"] && parseInt(process.env["CONSUMER_BATCH_TIMEOUT_MS"])) || 50;
+
 // To be used with AuthenticatedHttpRequester for example
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "reporting-bc-transfers-reporting-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
@@ -78,7 +81,9 @@ const kafkaProducerOptions = {
 
 const kafkaConsumerOptions: MLKafkaJsonConsumerOptions = {
     kafkaBrokerList: KAFKA_URL,
-    kafkaGroupId: `${BC_NAME}_${APP_NAME}`
+    kafkaGroupId: `${BC_NAME}_${APP_NAME}`,
+    batchSize: CONSUMER_BATCH_SIZE,
+    batchTimeoutMs: CONSUMER_BATCH_TIMEOUT_MS
 };
 
 let globalLogger: ILogger;

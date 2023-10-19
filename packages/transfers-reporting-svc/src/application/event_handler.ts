@@ -104,15 +104,14 @@ export class TransfersReportingEventHandler{
             payerFspId: payload.payerFsp,
             amount: payload.amount,
             currencyCode: payload.currencyCode,
-            ilpPacket: payload.ilpPacket,
-            condition: payload.condition,
             expirationTimestamp: payload.expiration,
             transferState: TransferState.RESERVED,
-            fulfilment: null,
             completedTimestamp: null,
             extensionList: null,
             errorInformation: null,
-            settlementModel: "DEFAULT", // Set as DEFAULT for now
+            settlementModel: payload.settlementModel,
+            preparedAt: payload.preparedAt,
+            fulfiledAt: null,
         };
 
         try {
@@ -137,9 +136,9 @@ export class TransfersReportingEventHandler{
                 ...existingTransfer,
                 updatedAt: Date.now(),
                 transferState: TransferState.COMMITTED,
-                fulfilment: payload.fulfilment,
                 completedTimestamp: payload.completedTimestamp,
                 extensionList: payload.extensionList,
+                fulfiledAt: payload.fulfiledAt,
             };
 
             await this._transferRpRepo.updateTransfer(updatedTransfer);

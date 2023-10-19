@@ -48,7 +48,6 @@ export class ExpressRoutes {
 
         // endpoints
         this._mainRouter.get("/", this.getExample.bind(this));
-        this._mainRouter.get("/version", this.getVersion.bind(this));
     }
 
     get MainRouter():express.Router{
@@ -59,17 +58,4 @@ export class ExpressRoutes {
         this._logger.debug("Got request to example endpoint");
         return res.send({resp:"example worked"});
     }
-
-    private async getVersion(req: express.Request, res: express.Response, next: express.NextFunction){
-        this._logger.debug("Got request to version endpoint");
-        return res.send({
-            environmentName: this._configClient.environmentName,
-            bcName: this._configClient.boundedContextName,
-            appName: this._configClient.applicationName,
-            appVersion: this._configClient.applicationVersion,
-            configsIterationNumber: this._configClient.appConfigs.iterationNumber
-        });
-    }
-
-
 }

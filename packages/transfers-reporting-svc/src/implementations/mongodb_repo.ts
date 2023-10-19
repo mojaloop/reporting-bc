@@ -148,15 +148,14 @@ export class MongoTransfersReportingRepo implements ITransfersReportingRepo {
 			payerFspId: transfer.payerFspId ?? null,
 			amount: transfer.amount ?? null,
 			currencyCode: transfer.currencyCode ?? null,
-			ilpPacket: transfer.ilpPacket ?? null,
-			condition: transfer.condition ?? null,
 			expirationTimestamp: transfer.expirationTimestamp ?? null,
 			transferState: transfer.transferState ?? null,
-			fulfilment: transfer.fulfilment ?? null,
 			completedTimestamp: transfer.completedTimestamp ?? null,
             errorInformation: transfer.errorInformation ?? null,
             extensionList: transfer.extensionList ?? null,
 			settlementModel: transfer.settlementModel ?? null,
+            preparedAt: transfer.preparedAt ?? null,
+            fulfiledAt: transfer.fulfiledAt ?? null,
 		};
 
 		return transferMapped;
