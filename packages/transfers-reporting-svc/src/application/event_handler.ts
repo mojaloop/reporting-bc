@@ -33,22 +33,31 @@ import {
     TransferFulfiledEvt,
     TransferPreparedEvt,
     TransferRejectRequestProcessedEvt,
-    TransfersBCTopics
+    TransfersBCTopics,
+    TransferPreparedEvtPayload,
+    TransferFulfiledEvtPayload,
+    TransferRejectRequestProcessedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IMessage, IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { IReportingTransferObject, TransferState } from "../types/transfers";
+import { ITransfersReportingRepo } from "../types";
+import { UnableToGetTransferError } from "../implementations/errors";
+
 
 export class TransfersReportingEventHandler{
     private _logger: ILogger;
     private _messageConsumer: IMessageConsumer;
+    private _transferRpRepo: ITransfersReportingRepo;
 
-    constructor(logger:ILogger, messageConsumer: IMessageConsumer) {
+    constructor(logger:ILogger, messageConsumer: IMessageConsumer, transferRpRepo: ITransfersReportingRepo) {
         this._logger = logger.createChild(this.constructor.name);
         this._messageConsumer = messageConsumer;
+        this._transferRpRepo = transferRpRepo;
     }
 
-    async start():Promise<void>{
+    async start(): Promise<void> {
         // create and start the consumer handler
         this._messageConsumer.setTopics([TransfersBCTopics.DomainRequests, TransfersBCTopics.DomainEvents, TransfersBCTopics.TimeoutEvents]);
 
@@ -57,7 +66,7 @@ export class TransfersReportingEventHandler{
         await this._messageConsumer.startAndWaitForRebalance();
     }
 
-    private async _batchMsgHandler(receivedMessages: IMessage[]): Promise<void>{
+    private async _batchMsgHandler(receivedMessages: IMessage[]): Promise<void> {
         console.log(`Got message batch in TransfersEventHandler batch size: ${receivedMessages.length}`);
 
         // this needs to never break
@@ -83,18 +92,83 @@ export class TransfersReportingEventHandler{
         });
     }
 
-    private async _handleTransferPreparedEvt(event:TransferPreparedEvt):Promise<void>{
-        // TODO update the reporting db with the state of this prepared transfer (create it)
+    private async _handleTransferPreparedEvt(event: TransferPreparedEvt): Promise<void> {
+        const now = Date.now();
+        const payload: TransferPreparedEvtPayload = event.payload;
 
+        const transfer: IReportingTransferObject = {
+            createdAt: now,
+            updatedAt: now,
+            transferId: payload.transferId,
+            payeeFspId: payload.payeeFsp,
+            payerFspId: payload.payerFsp,
+            amount: payload.amount,
+            currencyCode: payload.currencyCode,
+            expirationTimestamp: payload.expiration,
+            transferState: TransferState.RESERVED,
+            completedTimestamp: null,
+            extensionList: null,
+            errorInformation: null,
+            settlementModel: payload.settlementModel,
+            preparedAt: payload.preparedAt,
+            fulfiledAt: null,
+        };
+
+        try {
+            await this._transferRpRepo.addTransfer(transfer);
+
+        } catch (e: unknown) {
+            const errMsg = `Error while adding transfer with transfer ID ${payload.transferId}: ${(e as Error).message}`;
+            this._logger.error(errMsg);
+        }
     }
 
-    private async _handleTransferFulfiledEvt(event:TransferFulfiledEvt):Promise<void>{
-        // TODO update the reporting db with the new state of this transfer (now fulfiled)
+    private async _handleTransferFulfiledEvt(event: TransferFulfiledEvt): Promise<void> {
+        const payload: TransferFulfiledEvtPayload = event.payload;
 
-        // TODO update day totals
-    }
-    private async _handleTransferRejectRequestProcessedEvt(event:TransferRejectRequestProcessedEvt):Promise<void>{
-        // TODO update the reporting db with the new state of this transfer (rejected)
+        try {
+            const existingTransfer = await this._transferRpRepo.getTransferById(payload.transferId);
+            if (!existingTransfer) {
+                throw new UnableToGetTransferError();
+            }
+
+            const updatedTransfer: IReportingTransferObject = {
+                ...existingTransfer,
+                updatedAt: Date.now(),
+                transferState: TransferState.COMMITTED,
+                completedTimestamp: payload.completedTimestamp,
+                extensionList: payload.extensionList,
+                fulfiledAt: payload.fulfiledAt,
+            };
+
+            await this._transferRpRepo.updateTransfer(updatedTransfer);
+
+        } catch (e: unknown) {
+            const errMsg = `Error while updating transfer with transfer ID ${payload.transferId}: ${(e as Error).message}`;
+            this._logger.error(errMsg);
+        }
     }
 
+    private async _handleTransferRejectRequestProcessedEvt(event: TransferRejectRequestProcessedEvt): Promise<void> {
+        const payload: TransferRejectRequestProcessedEvtPayload = event.payload;
+
+        try {
+            const existingTransfer = await this._transferRpRepo.getTransferById(payload.transferId);
+            if (!existingTransfer) {
+                throw new UnableToGetTransferError();
+            }
+
+            const updatedTransfer: IReportingTransferObject = {
+                ...existingTransfer,
+                transferState: TransferState.ABORTED,
+                errorInformation: payload.errorInformation,
+            };
+
+            await this._transferRpRepo.updateTransfer(updatedTransfer);
+
+        } catch (e: unknown) {
+            const errMsg = `Error while updating transfer with transfer ID ${payload.transferId}: ${(e as Error).message}`;
+            this._logger.error(errMsg);
+        }
+    }
 }

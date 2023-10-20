@@ -38,10 +38,17 @@ import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 
 import process from "process";
 import util from "util";
-import {MLKafkaJsonConsumerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {
+    MLKafkaJsonConsumerOptions, 
+    MLKafkaJsonConsumer,
+} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import { TransfersReportingEventHandler } from "./event_handler";
+import { IMessageConsumer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { MongoTransfersReportingRepo } from "../implementations/mongodb_repo";
+import { ITransfersReportingRepo } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const packageJSON = require("../package.json");
+const packageJSON = require("../../package.json");
 
 // constants
 const BC_NAME = "reporting-bc";
@@ -50,14 +57,18 @@ const APP_VERSION = packageJSON.version;
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 
+const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
 
+const CONSUMER_BATCH_SIZE = (process.env["CONSUMER_BATCH_SIZE"] && parseInt(process.env["CONSUMER_BATCH_SIZE"])) || 50;
+const CONSUMER_BATCH_TIMEOUT_MS = (process.env["CONSUMER_BATCH_TIMEOUT_MS"] && parseInt(process.env["CONSUMER_BATCH_TIMEOUT_MS"])) || 50;
+
 // To be used with AuthenticatedHttpRequester for example
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "reporting-bc-transfers-reporting-svc";
-const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_ID"] || "superServiceSecret";
+const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
 const SVC_DEFAULT_HTTP_PORT = 5001;
 
@@ -70,7 +81,9 @@ const kafkaProducerOptions = {
 
 const kafkaConsumerOptions: MLKafkaJsonConsumerOptions = {
     kafkaBrokerList: KAFKA_URL,
-    kafkaGroupId: `${BC_NAME}_${APP_NAME}`
+    kafkaGroupId: `${BC_NAME}_${APP_NAME}`,
+    batchSize: CONSUMER_BATCH_SIZE,
+    batchTimeoutMs: CONSUMER_BATCH_TIMEOUT_MS
 };
 
 let globalLogger: ILogger;
@@ -80,9 +93,14 @@ export class Service {
     static app: Express;
     static expressServer: Server;
     static startupTimer: NodeJS.Timeout;
+    static handler: TransfersReportingEventHandler;
+    static messageConsumer: IMessageConsumer;
+    static transfersRpRepo: ITransfersReportingRepo;
 
     static async start(
-        logger?: ILogger
+        logger?: ILogger,
+        messageConsumer?: IMessageConsumer,
+        transfersRpRepo?: ITransfersReportingRepo,
     ):Promise<void>{
         console.log(`Service starting with PID: ${process.pid}`);
 
@@ -123,8 +141,31 @@ export class Service {
         await this.configClient.fetch();
         */
 
+        if (!messageConsumer) {
+			const consumerHandlerLogger = logger.createChild("handlerConsumer");
+			consumerHandlerLogger.setLogLevel(LogLevel.INFO);
+			messageConsumer = new MLKafkaJsonConsumer(kafkaConsumerOptions, consumerHandlerLogger);
+		}
+		this.messageConsumer = messageConsumer;
 
-        // TODO start actual service code
+        // Mongo DB repo initialization
+        if (!transfersRpRepo) {
+			const DB_NAME_REPORTING = process.env.REPORTING_DB_NAME ?? "reporting";
+
+			transfersRpRepo = new MongoTransfersReportingRepo(
+				logger,
+				MONGO_URL,
+				DB_NAME_REPORTING
+			);
+
+			await transfersRpRepo.init();
+			logger.info("Transfer Registry Repo Initialized");
+		}
+		this.transfersRpRepo = transfersRpRepo;
+
+        // create handler and start it
+        this.handler = new TransfersReportingEventHandler(this.logger, this.messageConsumer, this.transfersRpRepo);
+        await this.handler.start();
 
         await this.setupExpress();
 
@@ -176,6 +217,9 @@ export class Service {
         }
 
         // Stop everything else here
+        if (this.messageConsumer) await this.messageConsumer.destroy(true);
+
+        if (this.transfersRpRepo) await this.transfersRpRepo.destroy();
 
         if (this.logger && this.logger instanceof KafkaLogger) await this.logger.destroy();
     }

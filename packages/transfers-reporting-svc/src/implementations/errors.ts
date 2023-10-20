@@ -30,32 +30,42 @@
 
 "use strict";
 
-import express from "express";
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 
-
-export class ExpressRoutes {
-    private _logger:ILogger;
-    private _configClient: IConfigurationClient;
-
-    private _mainRouter = express.Router();
-
-
-    constructor(configClient: IConfigurationClient, logger:ILogger) {
-        this._configClient = configClient;
-        this._logger = logger;
-
-        // endpoints
-        this._mainRouter.get("/", this.getExample.bind(this));
+// Transfer Reports
+export class UnableToGetTransferError extends Error {
+    constructor(message?: string) {
+        super(message || 'Unable to get transfer');
     }
+}
 
-    get MainRouter():express.Router{
-        return this._mainRouter;
+export class TransferAlreadyExistsError extends Error {
+    constructor(message?: string) {
+        super(message || 'Transfer already exists');
     }
+}
 
-    private async getExample(req: express.Request, res: express.Response, next: express.NextFunction){
-        this._logger.debug("Got request to example endpoint");
-        return res.send({resp:"example worked"});
+export class UnableToAddTransferError extends Error {
+    constructor(message?: string) {
+        super(message || "Unable to add transfer");
+    }
+}
+
+export class UnableToUpdateTransferError extends Error {
+    constructor(message?: string) {
+        super(message || "Unable to update transfer");
+    }
+}
+
+
+// Database
+export class UnableToCloseDatabaseConnectionError extends Error{
+    constructor(message?: string) {
+        super(message || 'Unable to close database connection');
+    }
+}
+
+export class UnableToInitTransfersReportingRepoError extends Error {
+    constructor(message?: string) {
+        super(message || 'Unable to initialize transfers reporting repository');
     }
 }

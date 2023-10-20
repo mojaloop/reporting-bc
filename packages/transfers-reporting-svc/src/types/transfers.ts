@@ -32,7 +32,25 @@
 
 // NOTE: these types should be optimized for the reporting needs and should never reference the internal types (can obviously be similar if that is of interest)
 
-export interface IDailyTransferStats{
+export declare const enum TransferState {
+    RECEIVED = "RECEIVED", 		// initial state
+	RESERVED = "RESERVED", 		// after prepare
+	REJECTED = "REJECTED", 		// could not prepare (ex: no liquidity)
+    COMMITTED = "COMMITTED", 	// after fulfil (final state of successful transfer)
+    ABORTED = "ABORTED", 		// this should not be called like this
+    EXPIRED = "EXPIRED"			// system changed it expired (need the timeout mechanism)
+}
+
+export interface IExtensionList {
+    extension: { key: string; value: string;}[];
+}
+
+export interface IErrorInformation {
+    errorCode: string;
+    errorDescription: string;
+}
+
+export interface IDailyTransferStats {
     //day is the identifier - format 2023-12-27 (use ISO format)
     day: string;
     totalTransfersCount: number;
@@ -47,24 +65,22 @@ export interface IDailyTransferStats{
 }
 
 export interface IReportingTransferObject {
-    createdAt: number;
-    updatedAt: number;
-    transferId: string;
-    payeeFspId: string;
-    payerFspId: string;
-    amount: string;
-    currencyCode: string;
-    ilpPacket: string;				// move to opaque object
-    condition: string;				// move to opaque object
-    fulfilment: string | null,		// move to opaque object
-    expirationTimestamp: number;
-    transferState: "RESERVED",
-    completedTimestamp: number | null,
+	createdAt: number;
+	updatedAt: number;
+	transferId: string;
+	payeeFspId: string;
+	payerFspId: string;
+	amount: string;
+	currencyCode: string;
+	expirationTimestamp: number;
+	transferState: TransferState;
+	completedTimestamp: number | null;
 
-    // extensionList: IExtensionList | null;
-    // errorInformation: IErrorInformation | null;
+    extensionList: IExtensionList | null;
+    errorInformation: IErrorInformation | null;
 
-    // populated from the settlements lib during prepare
-    settlementModel: string;
-    hash: string;
+	// populated from the settlements lib during prepare
+	settlementModel: string | "DEFAULT";
+    preparedAt: number;
+    fulfiledAt: number | null;
 }
