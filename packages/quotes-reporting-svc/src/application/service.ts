@@ -25,6 +25,9 @@
  * Crosslake
  - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
+ * ThitsaWorks
+ - Myo Min Htet <myo.htet@thitsaworks.com>
+
  --------------
  ******/
 
@@ -36,39 +39,58 @@ import { Server } from "net";
 import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 
+import { IMessageConsumer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { QuotesReportingEventHandler } from "./event_handler";
+
 import process from "process";
 import util from "util";
 import {
-    MLKafkaJsonConsumerOptions,
     MLKafkaJsonConsumer,
+    MLKafkaJsonConsumerOptions
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { TransfersReportingEventHandler } from "./event_handler";
-import { IMessageConsumer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { MongoTransfersReportingRepo } from "../implementations/mongodb_repo";
-import { ITransfersReportingRepo } from "../types/infrastructure";
+import {
+    AuthenticatedHttpRequester,
+    TokenHelper
+} from "@mojaloop/security-bc-client-lib";
+
+
+import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-public-types-lib";
+import { ParticipantAdapter } from "../implementations/participant_adapter";
+import { IQuoteSchemeRules } from "../../../reporting-types-lib/dist/quotes";
+import { IAccountLookupServiceAdapter, IMongoDbQuotesReportingRepo, IParticipantsServiceAdapter, IQuotesServiceAdapter } from "../interfaces/infrastructure";
+import { MongoDbQuotesReportingRepo } from "../implementations/mongodb_repo";
+import { AccountLookupAdapter } from "../implementations/account_lookup_adapter";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../../package.json");
 
 // constants
 const BC_NAME = "reporting-bc";
-const APP_NAME = "transfers-reporting-svc";
+const APP_NAME = "participants-reporting-svc";
 const APP_VERSION = packageJSON.version;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 
-const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
+const SVC_DEFAULT_HTTP_PORT = 5003;
+
+const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
+const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
+
+
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
+const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
+
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 
-const CONSUMER_BATCH_SIZE = (process.env["CONSUMER_BATCH_SIZE"] && parseInt(process.env["CONSUMER_BATCH_SIZE"])) || 50;
-const CONSUMER_BATCH_TIMEOUT_MS = (process.env["CONSUMER_BATCH_TIMEOUT_MS"] && parseInt(process.env["CONSUMER_BATCH_TIMEOUT_MS"])) || 50;
+const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "reporting-bc-participants-reporting-svc";
+const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
-// To be used with AuthenticatedHttpRequester for example
-
-const SVC_DEFAULT_HTTP_PORT = 5001;
-
+const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
 const SERVICE_START_TIMEOUT_MS = 60_000;
 
+const PASS_THROUGH_MODE = (process.env["PASS_THROUGH_MODE"] === "true") ? true : false;
+const SCHEME_RULES: IQuoteSchemeRules = {
+    currencies: ["USD", "EUR", "GBP"],
+};
 
 const kafkaProducerOptions = {
     kafkaBrokerList: KAFKA_URL
@@ -76,11 +98,10 @@ const kafkaProducerOptions = {
 
 const kafkaConsumerOptions: MLKafkaJsonConsumerOptions = {
     kafkaBrokerList: KAFKA_URL,
-    kafkaGroupId: `${BC_NAME}_${APP_NAME}`,
-    batchSize: CONSUMER_BATCH_SIZE,
-    batchTimeoutMs: CONSUMER_BATCH_TIMEOUT_MS
+    kafkaGroupId: `${BC_NAME}_${APP_NAME}`
 };
 
+const PARTICIPANTS_CLIENT_CACHE_MS = 10_000;
 let globalLogger: ILogger;
 
 export class Service {
@@ -88,14 +109,19 @@ export class Service {
     static app: Express;
     static expressServer: Server;
     static startupTimer: NodeJS.Timeout;
-    static handler: TransfersReportingEventHandler;
     static messageConsumer: IMessageConsumer;
-    static transfersRpRepo: ITransfersReportingRepo;
+    static handler: QuotesReportingEventHandler;
+    static quoteRepo: IMongoDbQuotesReportingRepo;
+    static participantAdapter: IParticipantsServiceAdapter;
+    static accountLookupAdapter: IAccountLookupServiceAdapter;
+    static tokenHelper: TokenHelper;
 
     static async start(
         logger?: ILogger,
         messageConsumer?: IMessageConsumer,
-        transfersRpRepo?: ITransfersReportingRepo,
+        quotesRepo?: IMongoDbQuotesReportingRepo,
+        participantAdapter?: IParticipantsServiceAdapter,
+        accountlookupAdapter?: IAccountLookupServiceAdapter
     ): Promise<void> {
         console.log(`Service starting with PID: ${process.pid}`);
 
@@ -116,26 +142,6 @@ export class Service {
         }
         globalLogger = this.logger = logger;
 
-        /*
-        /// start config client - this is not mockable (can use STANDALONE MODE if desired)
-          if(!configProvider) {
-              // create the instance of IAuthenticatedHttpRequester
-              const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
-              authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-  
-              const messageConsumer = new MLKafkaJsonConsumer({
-                  kafkaBrokerList: KAFKA_URL,
-                  kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
-              }, this.logger.createChild("configClient.consumer"));
-              configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
-          }
-  
-          this.configClient = GetParticipantsConfigs(configProvider, BC_NAME, APP_NAME, APP_VERSION);
-          await this.configClient.init();
-          await this.configClient.bootstrap(true);
-          await this.configClient.fetch();
-          */
-
         if (!messageConsumer) {
             const consumerHandlerLogger = logger.createChild("handlerConsumer");
             consumerHandlerLogger.setLogLevel(LogLevel.INFO);
@@ -143,23 +149,39 @@ export class Service {
         }
         this.messageConsumer = messageConsumer;
 
-        // Mongo DB repo initialization
-        if (!transfersRpRepo) {
-            const DB_NAME_REPORTING = process.env.REPORTING_DB_NAME ?? "reporting";
+        if (!quotesRepo) {
+            quotesRepo = new MongoDbQuotesReportingRepo(MONGO_URL, logger);
 
-            transfersRpRepo = new MongoTransfersReportingRepo(
-                logger,
-                MONGO_URL,
-                DB_NAME_REPORTING
-            );
-
-            await transfersRpRepo.init();
-            logger.info("Transfer Registry Repo Initialized");
+            await quotesRepo.init();
+            logger.info("Quotes reporting Repo Initialized");
         }
-        this.transfersRpRepo = transfersRpRepo;
+        this.quoteRepo = quotesRepo;
 
-        // create handler and start it
-        this.handler = new TransfersReportingEventHandler(this.logger, this.messageConsumer, this.transfersRpRepo);
+        const authRequester: IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+        authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+
+        if (!accountlookupAdapter) {
+            accountlookupAdapter = new AccountLookupAdapter(this.logger, PARTICIPANTS_SVC_URL, authRequester, PARTICIPANTS_CLIENT_CACHE_MS);
+        }
+
+        this.accountLookupAdapter = accountlookupAdapter;
+
+        if (!participantAdapter) {
+            participantAdapter = new ParticipantAdapter(this.logger, PARTICIPANTS_SVC_URL, authRequester, PARTICIPANTS_CLIENT_CACHE_MS);
+        }
+
+        this.participantAdapter = participantAdapter;
+
+        // TODO start actual service code
+
+        this.handler = new QuotesReportingEventHandler(
+            this.messageConsumer,
+            this.logger,
+            this.quoteRepo,
+            this.accountLookupAdapter,
+            this.participantAdapter,
+            PASS_THROUGH_MODE,
+            SCHEME_RULES);
         await this.handler.start();
 
         await this.setupExpress();
@@ -178,14 +200,6 @@ export class Service {
             this.app.get("/health", (req: express.Request, res: express.Response) => {
                 return res.send({ status: "OK" });
             });
-            // this.app.get("/metrics", async (req: express.Request, res: express.Response) => {
-            //     const strMetrics = await (this.metrics as PrometheusMetrics).getMetricsForPrometheusScrapper();
-            //     return res.send(strMetrics);
-            // });
-
-            // hook actual app routes
-            // const routes = new ExpressRoutes(this.participantAgg, this.tokenHelper, this.logger);
-            // this.app.use("/", routes.MainRouter);
 
             this.app.use((req, res) => {
                 // catch all
@@ -199,7 +213,7 @@ export class Service {
 
             this.expressServer = this.app.listen(portNum, () => {
                 this.logger.info(`🚀 Server ready at port: ${portNum}`);
-                this.logger.info(`Transfers Reporting service v: ${APP_VERSION} started`);
+                this.logger.info(`Quotes Reporting service v: ${APP_VERSION} started`);
                 resolve();
             });
         });
@@ -212,10 +226,8 @@ export class Service {
         }
 
         // Stop everything else here
+        if (this.handler) await this.handler.stop();
         if (this.messageConsumer) await this.messageConsumer.destroy(true);
-
-        if (this.transfersRpRepo) await this.transfersRpRepo.destroy();
-
         if (this.logger && this.logger instanceof KafkaLogger) await this.logger.destroy();
     }
 }

@@ -30,16 +30,10 @@
 
 "use strict";
 
+import { TransferState } from "./enums";
+
 // NOTE: these types should be optimized for the reporting needs and should never reference the internal types (can obviously be similar if that is of interest)
 
-export declare const enum TransferState {
-    RECEIVED = "RECEIVED", 		// initial state
-	RESERVED = "RESERVED", 		// after prepare
-	REJECTED = "REJECTED", 		// could not prepare (ex: no liquidity)
-    COMMITTED = "COMMITTED", 	// after fulfil (final state of successful transfer)
-    ABORTED = "ABORTED", 		// this should not be called like this
-    EXPIRED = "EXPIRED"			// system changed it expired (need the timeout mechanism)
-}
 
 export interface IExtensionList {
     extension: { key: string; value: string;}[];
@@ -64,7 +58,7 @@ export interface IDailyTransferStats {
     }
 }
 
-export interface IReportingTransferObject {
+export interface ITransferReport {
 	createdAt: number;
 	updatedAt: number;
 	transferId: string;

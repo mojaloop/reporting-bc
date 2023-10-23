@@ -30,12 +30,12 @@
 
 "use strict";
 
-import { IReportingTransferObject } from "./transfers";
+import { ITransferReport } from "@mojaloop/reporting-bc-types-lib";
 
 export interface ITransfersReportingRepo {
     init(): Promise<void>;
 	destroy(): Promise<void>;
-    getTransferById(transferId: string): Promise<IReportingTransferObject | null>;
-    addTransfer(transfer: IReportingTransferObject): Promise<string>;
-    updateTransfer(transfer: IReportingTransferObject): Promise<void>;
+    getTransferById(transferId: string): Promise<ITransferReport | null>;
+    addTransfer(transfer: ITransferReport): Promise<string>;
+    updateTransfer(transfer: ITransferReport): Promise<void>;
 }

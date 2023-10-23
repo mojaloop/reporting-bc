@@ -31,7 +31,7 @@
 
 import { ParticipantAccountTypes, ParticipantAllowedSourceIpsPortModes, ParticipantChangeTypes, ParticipantEndpointProtocols, ParticipantEndpointTypes, ParticipantFundsMovementDirections, ParticipantNetDebitCapTypes, ParticipantTypes } from "./enums";
 
-export declare interface IParticipant {
+export declare interface IParticipantReport {
     id: string;
     name: string;
     type: ParticipantTypes;

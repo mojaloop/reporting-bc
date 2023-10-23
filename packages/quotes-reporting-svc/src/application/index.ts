@@ -22,27 +22,17 @@
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
 
- * Crosslake
- - Pedro Sousa Barreto <pedrob@crosslaketech.com>
-
  * ThitsaWorks
  - Myo Min Htet <myo.htet@thitsaworks.com>
+
 
  --------------
  ******/
 
 "use strict";
 
-import {
-    IParticipantReport
-} from "@mojaloop/reporting-bc-types-lib";
+import {Service} from "./service";
 
-export interface IMongoDbParticipantReportingRepo{
-    init(): Promise<void>;
-      
-    create(participant: IParticipantReport): Promise<boolean>;
-
-    store(participant: IParticipantReport): Promise<boolean>;
-
-    destroy(): Promise<void>;
-}
+Service.start().then(() => {
+    console.log("Service start complete");
+});

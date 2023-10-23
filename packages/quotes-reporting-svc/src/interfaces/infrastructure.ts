@@ -26,23 +26,57 @@
  - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
  * ThitsaWorks
- - Myo Min Htet <myo.htet@thitsaworks.com>
+ - Sithu Kyaw <sithu.kyaw@thitsaworks.com>
 
  --------------
  ******/
 
 "use strict";
 
-import {
-    IParticipantReport
-} from "@mojaloop/reporting-bc-types-lib";
+import { IParticipantReport, IBulkQuoteReport, IQuoteReport } from "@mojaloop/reporting-bc-types-lib";
 
-export interface IMongoDbParticipantReportingRepo{
+
+
+export interface IMongoDbQuotesReportingRepo {
     init(): Promise<void>;
-      
-    create(participant: IParticipantReport): Promise<boolean>;
 
-    store(participant: IParticipantReport): Promise<boolean>;
+    addQuote(quote: IQuoteReport): Promise<string>;
+
+    addQuotes(quotes: IQuoteReport[]): Promise<void>;
+
+    updateQuote(quote: IQuoteReport): Promise<void>
+
+    updateQuotes(quotes: IQuoteReport[]): Promise<void>;
+
+    removeQuote(id: string): Promise<void>;
 
     destroy(): Promise<void>;
+}
+
+export interface IMongoDbBulkQuotesReportingRepo {
+    init(): Promise<void>;
+
+    addBulkQuote(bulkQuote: IBulkQuoteReport): Promise<string>;
+
+    updateBulkQuote(bulkQuote: IBulkQuoteReport): Promise<void>;
+
+    removeBulkQuote(id: string): Promise<void>;
+
+    destroy(): Promise<void>;
+}
+
+
+export interface IQuotesServiceAdapter {
+    getQuoteInfo(id: string): Promise<IQuoteReport | null>;
+    getQuotesByBulkQuoteId(id: string): Promise<IQuoteReport[] | null>;
+    getBulkQuoteInfo(id: string[]): Promise<IBulkQuoteReport | null>;
+}
+
+export interface IParticipantsServiceAdapter {
+    getParticipantInfo(fspId: string): Promise<IParticipantReport| null>;
+    getParticipantsInfo(fspIds: string[]): Promise<IParticipantReport[]|null>;
+}
+
+export interface IAccountLookupServiceAdapter {
+    getAccountLookup(partyType:string, partyId:string, currency:string | null): Promise<string| null>;
 }
