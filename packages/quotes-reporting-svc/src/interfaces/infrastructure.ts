@@ -33,21 +33,20 @@
 
 "use strict";
 
-import { IParticipant } from "../../../reporting-types-lib/dist/participants";
-import { IBulkQuote, IQuote } from "../../../reporting-types-lib/dist/quotes";
+import { IParticipantReport, IBulkQuoteReport, IQuoteReport } from "@mojaloop/reporting-bc-types-lib";
 
 
 
 export interface IMongoDbQuotesReportingRepo {
     init(): Promise<void>;
 
-    addQuote(quote: IQuote): Promise<string>;
+    addQuote(quote: IQuoteReport): Promise<string>;
 
-    addQuotes(quotes: IQuote[]): Promise<void>;
+    addQuotes(quotes: IQuoteReport[]): Promise<void>;
 
-    updateQuote(quote: IQuote): Promise<void>
+    updateQuote(quote: IQuoteReport): Promise<void>
 
-    updateQuotes(quotes: IQuote[]): Promise<void>;
+    updateQuotes(quotes: IQuoteReport[]): Promise<void>;
 
     removeQuote(id: string): Promise<void>;
 
@@ -57,9 +56,9 @@ export interface IMongoDbQuotesReportingRepo {
 export interface IMongoDbBulkQuotesReportingRepo {
     init(): Promise<void>;
 
-    addBulkQuote(bulkQuote: IBulkQuote): Promise<string>;
+    addBulkQuote(bulkQuote: IBulkQuoteReport): Promise<string>;
 
-    updateBulkQuote(bulkQuote: IBulkQuote): Promise<void>;
+    updateBulkQuote(bulkQuote: IBulkQuoteReport): Promise<void>;
 
     removeBulkQuote(id: string): Promise<void>;
 
@@ -68,14 +67,14 @@ export interface IMongoDbBulkQuotesReportingRepo {
 
 
 export interface IQuotesServiceAdapter {
-    getQuoteInfo(id: string): Promise<IQuote | null>;
-    getQuotesByBulkQuoteId(id: string): Promise<IQuote[] | null>;
-    getBulkQuoteInfo(id: string[]): Promise<IBulkQuote | null>;
+    getQuoteInfo(id: string): Promise<IQuoteReport | null>;
+    getQuotesByBulkQuoteId(id: string): Promise<IQuoteReport[] | null>;
+    getBulkQuoteInfo(id: string[]): Promise<IBulkQuoteReport | null>;
 }
 
 export interface IParticipantsServiceAdapter {
-    getParticipantInfo(fspId: string): Promise<IParticipant| null>;
-    getParticipantsInfo(fspIds: string[]): Promise<IParticipant[]|null>;
+    getParticipantInfo(fspId: string): Promise<IParticipantReport| null>;
+    getParticipantsInfo(fspIds: string[]): Promise<IParticipantReport[]|null>;
 }
 
 export interface IAccountLookupServiceAdapter {

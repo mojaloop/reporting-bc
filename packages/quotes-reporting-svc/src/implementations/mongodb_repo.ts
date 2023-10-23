@@ -36,7 +36,7 @@
 import { IMongoDbQuotesReportingRepo } from "../interfaces/infrastructure";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { Collection, Document, MongoClient, WithId } from "mongodb";
-import { IQuote } from "../../../reporting-types-lib/dist/quotes";
+import { IQuoteReport } from "@mojaloop/reporting-bc-types-lib";
 import { randomUUID } from "crypto";
 
 export class MongoDbQuotesReportingRepo implements IMongoDbQuotesReportingRepo {
@@ -96,7 +96,7 @@ export class MongoDbQuotesReportingRepo implements IMongoDbQuotesReportingRepo {
         this._logger.info("MongoDBQuotesRepo - initialized");
     }
 
-    async addQuote(quote: IQuote): Promise<string> {
+    async addQuote(quote: IQuoteReport): Promise<string> {
         const quoteToAdd = { ...quote };
         if (quoteToAdd.quoteId) {
             await this.checkIfQuoteExists(quote);
@@ -112,7 +112,7 @@ export class MongoDbQuotesReportingRepo implements IMongoDbQuotesReportingRepo {
         return quoteToAdd.quoteId;
     }
 
-    async addQuotes(quotes: IQuote[]): Promise<void> {
+    async addQuotes(quotes: IQuoteReport[]): Promise<void> {
         const quotesToAdd = quotes.map((quote) => {
             return { ...quote, quoteId: quote.quoteId || randomUUID() };
         });
@@ -132,7 +132,7 @@ export class MongoDbQuotesReportingRepo implements IMongoDbQuotesReportingRepo {
         });
     }
 
-    async getQuoteById(quoteId: string): Promise<IQuote | null> {
+    async getQuoteById(quoteId: string): Promise<IQuoteReport | null> {
         const quote = await this._collectionQuotes
             .findOne({ quoteId: quoteId })
             .catch((e: unknown) => {
@@ -148,7 +148,7 @@ export class MongoDbQuotesReportingRepo implements IMongoDbQuotesReportingRepo {
         return this.mapToQuote(quote);
     }
 
-    async updateQuote(quote: IQuote): Promise<void> {
+    async updateQuote(quote: IQuoteReport): Promise<void> {
         const existingQuote = await this.getQuoteById(quote.quoteId);
 
         if (!existingQuote || !existingQuote.quoteId) {
@@ -165,7 +165,7 @@ export class MongoDbQuotesReportingRepo implements IMongoDbQuotesReportingRepo {
             });
     }
 
-    async updateQuotes(quotes: IQuote[]): Promise<void> {
+    async updateQuotes(quotes: IQuoteReport[]): Promise<void> {
         const bulkOps = quotes.map((quote) => ({
             updateOne: {
                 filter: { quoteId: quote.quoteId },
@@ -200,7 +200,7 @@ export class MongoDbQuotesReportingRepo implements IMongoDbQuotesReportingRepo {
     }
 
 
-    private async checkIfQuoteExists(quote: IQuote) {
+    private async checkIfQuoteExists(quote: IQuoteReport) {
         const quoteAlreadyPresent: WithId<Document> | null = await this._collectionQuotes
             .findOne({
                 quoteId: quote.quoteId,
@@ -217,8 +217,8 @@ export class MongoDbQuotesReportingRepo implements IMongoDbQuotesReportingRepo {
         }
     }
 
-    private mapToQuote(quote: WithId<Document>): IQuote {
-        const quoteMapped: IQuote = {
+    private mapToQuote(quote: WithId<Document>): IQuoteReport {
+        const quoteMapped: IQuoteReport = {
             quoteId: quote.quoteId ?? null,
             bulkQuoteId: quote.bulkQuoteId ?? null,
             transactionId: quote.transactionId ?? null,

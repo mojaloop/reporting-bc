@@ -48,13 +48,14 @@ import {
     MLKafkaJsonConsumer,
     MLKafkaJsonConsumerOptions
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import { 
+import {
     AuthenticatedHttpRequester,
-    TokenHelper } from "@mojaloop/security-bc-client-lib";
+    TokenHelper
+} from "@mojaloop/security-bc-client-lib";
 import { IMongoDbParticipantReportingRepo } from "../types/mongodb_repo_interface";
 import { IParticipantsServiceAdapter } from "../types/participant_adapter_interface";
 import { MongoDbParticipantReportingRepo } from "../implementations/mongodb_repo";
-import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-public-types-lib";
+import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-public-types-lib";
 import { ParticipantAdapter } from "../implementations/participant_adapter";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -96,7 +97,7 @@ const kafkaConsumerOptions: MLKafkaJsonConsumerOptions = {
 const PARTICIPANTS_CLIENT_CACHE_MS = 10_000;
 let globalLogger: ILogger;
 
-export class Service {    
+export class Service {
     static logger: ILogger;
     static app: Express;
     static expressServer: Server;
@@ -104,7 +105,7 @@ export class Service {
     static messageConsumer: IMessageConsumer;
     static handler: ParticipantsReportingEventHandler;
     static participantRepo: IMongoDbParticipantReportingRepo;
-    static participantAdapter: IParticipantsServiceAdapter;    
+    static participantAdapter: IParticipantsServiceAdapter;
     static tokenHelper: TokenHelper;
 
     static async start(

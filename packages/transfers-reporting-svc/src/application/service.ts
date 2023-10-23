@@ -31,21 +31,21 @@
 "use strict";
 
 
-import express, {Express} from "express";
-import {Server} from "net";
-import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
-import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
+import express, { Express } from "express";
+import { Server } from "net";
+import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
+import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 
 import process from "process";
 import util from "util";
 import {
-    MLKafkaJsonConsumerOptions, 
+    MLKafkaJsonConsumerOptions,
     MLKafkaJsonConsumer,
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import { TransfersReportingEventHandler } from "./event_handler";
 import { IMessageConsumer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { MongoTransfersReportingRepo } from "../implementations/mongodb_repo";
-import { ITransfersReportingRepo } from "../types";
+import { ITransfersReportingRepo } from "../types/infrastructure";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../../package.json");
@@ -54,21 +54,16 @@ const packageJSON = require("../../package.json");
 const BC_NAME = "reporting-bc";
 const APP_NAME = "transfers-reporting-svc";
 const APP_VERSION = packageJSON.version;
-const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 
 const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
-const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
-const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
 
 const CONSUMER_BATCH_SIZE = (process.env["CONSUMER_BATCH_SIZE"] && parseInt(process.env["CONSUMER_BATCH_SIZE"])) || 50;
 const CONSUMER_BATCH_TIMEOUT_MS = (process.env["CONSUMER_BATCH_TIMEOUT_MS"] && parseInt(process.env["CONSUMER_BATCH_TIMEOUT_MS"])) || 50;
 
 // To be used with AuthenticatedHttpRequester for example
-const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "reporting-bc-transfers-reporting-svc";
-const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
 const SVC_DEFAULT_HTTP_PORT = 5001;
 
@@ -101,10 +96,10 @@ export class Service {
         logger?: ILogger,
         messageConsumer?: IMessageConsumer,
         transfersRpRepo?: ITransfersReportingRepo,
-    ):Promise<void>{
+    ): Promise<void> {
         console.log(`Service starting with PID: ${process.pid}`);
 
-        this.startupTimer = setTimeout(()=>{
+        this.startupTimer = setTimeout(() => {
             throw new Error("Service start timed-out");
         }, SERVICE_START_TIMEOUT_MS);
 
@@ -121,47 +116,47 @@ export class Service {
         }
         globalLogger = this.logger = logger;
 
-      /*
-      /// start config client - this is not mockable (can use STANDALONE MODE if desired)
-        if(!configProvider) {
-            // create the instance of IAuthenticatedHttpRequester
-            const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
-            authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-
-            const messageConsumer = new MLKafkaJsonConsumer({
-                kafkaBrokerList: KAFKA_URL,
-                kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
-            }, this.logger.createChild("configClient.consumer"));
-            configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
-        }
-
-        this.configClient = GetParticipantsConfigs(configProvider, BC_NAME, APP_NAME, APP_VERSION);
-        await this.configClient.init();
-        await this.configClient.bootstrap(true);
-        await this.configClient.fetch();
-        */
+        /*
+        /// start config client - this is not mockable (can use STANDALONE MODE if desired)
+          if(!configProvider) {
+              // create the instance of IAuthenticatedHttpRequester
+              const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+              authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+  
+              const messageConsumer = new MLKafkaJsonConsumer({
+                  kafkaBrokerList: KAFKA_URL,
+                  kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
+              }, this.logger.createChild("configClient.consumer"));
+              configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
+          }
+  
+          this.configClient = GetParticipantsConfigs(configProvider, BC_NAME, APP_NAME, APP_VERSION);
+          await this.configClient.init();
+          await this.configClient.bootstrap(true);
+          await this.configClient.fetch();
+          */
 
         if (!messageConsumer) {
-			const consumerHandlerLogger = logger.createChild("handlerConsumer");
-			consumerHandlerLogger.setLogLevel(LogLevel.INFO);
-			messageConsumer = new MLKafkaJsonConsumer(kafkaConsumerOptions, consumerHandlerLogger);
-		}
-		this.messageConsumer = messageConsumer;
+            const consumerHandlerLogger = logger.createChild("handlerConsumer");
+            consumerHandlerLogger.setLogLevel(LogLevel.INFO);
+            messageConsumer = new MLKafkaJsonConsumer(kafkaConsumerOptions, consumerHandlerLogger);
+        }
+        this.messageConsumer = messageConsumer;
 
         // Mongo DB repo initialization
         if (!transfersRpRepo) {
-			const DB_NAME_REPORTING = process.env.REPORTING_DB_NAME ?? "reporting";
+            const DB_NAME_REPORTING = process.env.REPORTING_DB_NAME ?? "reporting";
 
-			transfersRpRepo = new MongoTransfersReportingRepo(
-				logger,
-				MONGO_URL,
-				DB_NAME_REPORTING
-			);
+            transfersRpRepo = new MongoTransfersReportingRepo(
+                logger,
+                MONGO_URL,
+                DB_NAME_REPORTING
+            );
 
-			await transfersRpRepo.init();
-			logger.info("Transfer Registry Repo Initialized");
-		}
-		this.transfersRpRepo = transfersRpRepo;
+            await transfersRpRepo.init();
+            logger.info("Transfer Registry Repo Initialized");
+        }
+        this.transfersRpRepo = transfersRpRepo;
 
         // create handler and start it
         this.handler = new TransfersReportingEventHandler(this.logger, this.messageConsumer, this.transfersRpRepo);
@@ -177,7 +172,7 @@ export class Service {
         return new Promise<void>(resolve => {
             this.app = express();
             this.app.use(express.json()); // for parsing application/json
-            this.app.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
+            this.app.use(express.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 
             // Add health and metrics http routes - before others (to avoid authZ middleware)
             this.app.get("/health", (req: express.Request, res: express.Response) => {
@@ -211,7 +206,7 @@ export class Service {
     }
 
     static async stop() {
-        if (this.expressServer){
+        if (this.expressServer) {
             const closeExpress = util.promisify(this.expressServer.close);
             await closeExpress();
         }

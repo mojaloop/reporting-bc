@@ -35,7 +35,6 @@ import { TransferState } from "./enums";
 // NOTE: these types should be optimized for the reporting needs and should never reference the internal types (can obviously be similar if that is of interest)
 
 
-
 export interface IExtensionList {
     extension: { key: string; value: string;}[];
 }
@@ -59,7 +58,7 @@ export interface IDailyTransferStats {
     }
 }
 
-export interface IReportingTransferObject {
+export interface ITransferReport {
 	createdAt: number;
 	updatedAt: number;
 	transferId: string;

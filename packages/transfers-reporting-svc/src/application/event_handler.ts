@@ -39,19 +39,21 @@ import {
     TransferRejectRequestProcessedEvtPayload,
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {IMessage, IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { IReportingTransferObject, TransferState } from "../types/transfers";
-import { ITransfersReportingRepo } from "../types";
+import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
+import { IMessage, IMessageConsumer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+
 import { UnableToGetTransferError } from "../implementations/errors";
+import { ITransfersReportingRepo } from "../types/infrastructure";
+import { ITransferReport, TransferState } from "@mojaloop/reporting-bc-types-lib";
 
 
-export class TransfersReportingEventHandler{
+
+export class TransfersReportingEventHandler {
     private _logger: ILogger;
     private _messageConsumer: IMessageConsumer;
     private _transferRpRepo: ITransfersReportingRepo;
 
-    constructor(logger:ILogger, messageConsumer: IMessageConsumer, transferRpRepo: ITransfersReportingRepo) {
+    constructor(logger: ILogger, messageConsumer: IMessageConsumer, transferRpRepo: ITransfersReportingRepo) {
         this._logger = logger.createChild(this.constructor.name);
         this._messageConsumer = messageConsumer;
         this._transferRpRepo = transferRpRepo;
@@ -74,7 +76,7 @@ export class TransfersReportingEventHandler{
             try {
                 for (const message of receivedMessages) {
                     if (message.msgName === TransferPreparedEvt.name) {
-                         await this._handleTransferPreparedEvt(message as TransferPreparedEvt);
+                        await this._handleTransferPreparedEvt(message as TransferPreparedEvt);
                     } else if (message.msgName === TransferFulfiledEvt.name) {
                         await this._handleTransferFulfiledEvt(message as TransferFulfiledEvt);
                     } else if (message.msgName === TransferRejectRequestProcessedEvt.name) {
@@ -96,7 +98,7 @@ export class TransfersReportingEventHandler{
         const now = Date.now();
         const payload: TransferPreparedEvtPayload = event.payload;
 
-        const transfer: IReportingTransferObject = {
+        const transfer: ITransferReport = {
             createdAt: now,
             updatedAt: now,
             transferId: payload.transferId,
@@ -132,7 +134,7 @@ export class TransfersReportingEventHandler{
                 throw new UnableToGetTransferError();
             }
 
-            const updatedTransfer: IReportingTransferObject = {
+            const updatedTransfer: ITransferReport = {
                 ...existingTransfer,
                 updatedAt: Date.now(),
                 transferState: TransferState.COMMITTED,
@@ -158,7 +160,7 @@ export class TransfersReportingEventHandler{
                 throw new UnableToGetTransferError();
             }
 
-            const updatedTransfer: IReportingTransferObject = {
+            const updatedTransfer: ITransferReport = {
                 ...existingTransfer,
                 transferState: TransferState.ABORTED,
                 errorInformation: payload.errorInformation,

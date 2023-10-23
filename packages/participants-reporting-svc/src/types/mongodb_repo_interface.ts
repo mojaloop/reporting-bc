@@ -34,15 +34,15 @@
 "use strict";
 
 import {
-    IParticipant
-} from "./participants";
+    IParticipantReport
+} from "@mojaloop/reporting-bc-types-lib";
 
 export interface IMongoDbParticipantReportingRepo{
     init(): Promise<void>;
       
-    create(participant: IParticipant): Promise<boolean>;
+    create(participant: IParticipantReport): Promise<boolean>;
 
-    store(participant: IParticipant): Promise<boolean>;
+    store(participant: IParticipantReport): Promise<boolean>;
 
     destroy(): Promise<void>;
 }

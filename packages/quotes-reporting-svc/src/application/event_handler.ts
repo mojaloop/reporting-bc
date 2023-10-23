@@ -40,8 +40,10 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { MongoDbQuotesReportingRepo } from "../implementations/mongodb_repo";
 import { IAccountLookupServiceAdapter, IMongoDbQuotesReportingRepo, IParticipantsServiceAdapter } from "../interfaces/infrastructure";
-import { IQuote, IQuoteSchemeRules, QuoteStatus } from "../../../reporting-types-lib/dist/quotes";
-import { IParticipant } from "../../../reporting-types-lib/dist/participants";
+import {
+	IParticipantReport, IQuoteReport, IQuoteSchemeRules, QuoteStatus
+} from "@mojaloop/reporting-bc-types-lib";
+
 
 
 export class QuotesReportingEventHandler {
@@ -95,8 +97,7 @@ export class QuotesReportingEventHandler {
 					await this.handleQuoteRequestReceivedEvt(message as QuoteRequestReceivedEvt);
 				} else if (message.msgName === QuoteResponseReceivedEvt.name) {
 					await this.handleQuoteResponseReceivedEvt(message as QuoteResponseReceivedEvt)
-				}
-				else {
+				} else {
 					// ignore message, don't bother logging
 				}
 
@@ -117,13 +118,13 @@ export class QuotesReportingEventHandler {
 		const expirationDate = message.payload.expiration ?? null;
 
 		const requesterParticipantError = await this.validateRequesterParticipantInfoOrGetErrorEvent(requesterFspId, quoteId, null);
-		
-		if(requesterParticipantError){
+
+		if (requesterParticipantError) {
 			throw requesterParticipantError;
 		}
 
 		const isSchemaValid = this.validateScheme(message);
-		if(!isSchemaValid){
+		if (!isSchemaValid) {
 			const errorPayload: QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload = {
 				quoteId,
 				errorDescription: `Quote request scheme validation failed for quoteId: ${quoteId}`
@@ -132,13 +133,13 @@ export class QuotesReportingEventHandler {
 			throw errorEvent;
 		}
 
-		if(!destinationFspId){
+		if (!destinationFspId) {
 			const payeePartyId = message.payload.payee?.partyIdInfo?.partyIdentifier ?? null;
 			const payeePartyType = message.payload.payee?.partyIdInfo?.partyIdType ?? null;
 			const currency = message.payload.amount?.currency ?? null;
 			this._logger.debug(`Get destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency}`);
 			destinationFspId = await this._accountlookupAdapter.getAccountLookup(payeePartyType, payeePartyId, currency)
-				.catch((error:Error) => {
+				.catch((error: Error) => {
 					this._logger.error(`Error while getting destinationFspId from account lookup service for payeePartyId: ${payeePartyId}, payeePartyIdType: ${payeePartyType}, currency: ${currency} - ${error}`);
 					return null;
 				});
@@ -146,18 +147,18 @@ export class QuotesReportingEventHandler {
 		}
 
 		const destinationParticipantError = await this.validateDestinationParticipantInfoOrGetErrorEvent(destinationFspId, quoteId, null);
-		if(destinationParticipantError){
+		if (destinationParticipantError) {
 			throw destinationParticipantError;
 		}
 
-		if(expirationDate){
-			const expirationDateValidationError = this.validateExpirationDateOrGetErrorEvent(quoteId,null, expirationDate);
-			if(expirationDateValidationError){
+		if (expirationDate) {
+			const expirationDateValidationError = this.validateExpirationDateOrGetErrorEvent(quoteId, null, expirationDate);
+			if (expirationDateValidationError) {
 				throw expirationDateValidationError;
 			}
 		}
 
-		const quote: IQuote = {
+		const quote: IQuoteReport = {
 			quoteId: message.payload.quoteId,
 			bulkQuoteId: null,
 			requesterFspId: message.fspiopOpaqueState.requesterFspId,
@@ -186,14 +187,13 @@ export class QuotesReportingEventHandler {
 			transferAmount: message.payload.amount
 		};
 
-		if(!this._passThroughMode)
-		{
-			try{
+		if (!this._passThroughMode) {
+			try {
 				this._repo.addQuote(quote);
 			}
-			catch(error:any){
+			catch (error: any) {
 				this._logger.error(`Error adding quote to database: ${error}`);
-				const errorPayload : QuoteBCUnableToAddQuoteToDatabaseErrorPayload = {
+				const errorPayload: QuoteBCUnableToAddQuoteToDatabaseErrorPayload = {
 					errorDescription: "Unable to add quote to database",
 					quoteId
 				};
@@ -248,7 +248,7 @@ export class QuotesReportingEventHandler {
 		}
 
 		if (!this._passThroughMode) {
-			const quote: Partial<IQuote> = {
+			const quote: Partial<IQuoteReport> = {
 				quoteId: message.payload.quoteId,
 				condition: message.payload.condition,
 				expiration: message.payload.expiration,
@@ -263,7 +263,7 @@ export class QuotesReportingEventHandler {
 			};
 
 			try {
-				await this._repo.updateQuote(quote as IQuote);
+				await this._repo.updateQuote(quote as IQuoteReport);
 			}
 			catch (error: any) {
 				this._logger.error(`Error updating quote: ${error.message}`);
@@ -296,7 +296,7 @@ export class QuotesReportingEventHandler {
 	}
 
 	private async validateDestinationParticipantInfoOrGetErrorEvent(participantId: string, quoteId: string | null, bulkQuoteId: string | null): Promise<DomainEventMsg | null> {
-		let participant: IParticipant | null = null;
+		let participant: IParticipantReport | null = null;
 
 		if (!participantId) {
 			const errorMessage = `Payee fspId is null or undefined`;
@@ -352,7 +352,7 @@ export class QuotesReportingEventHandler {
 	}
 
 	private async validateRequesterParticipantInfoOrGetErrorEvent(participantId: string, quoteId: string | null, bulkQuoteId: string | null): Promise<DomainEventMsg | null> {
-		let participant: IParticipant | null = null;
+		let participant: IParticipantReport | null = null;
 
 		if (!participantId) {
 			const errorMessage = `Payer fspId is null or undefined`;

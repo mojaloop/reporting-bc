@@ -32,9 +32,8 @@
 
 import {
     IDailyTransferStats, 
-    IReportingTransferObject,
-    ITransfersReportingRepo,
-} from "../types";
+    ITransferReport
+} from "@mojaloop/reporting-bc-types-lib";
 import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
 import { Collection, Document, MongoClient, WithId } from 'mongodb';
 import { 
@@ -45,6 +44,7 @@ import {
     UnableToAddTransferError,
     UnableToUpdateTransferError,
 } from "./errors";
+import { ITransfersReportingRepo } from "../types/infrastructure";
 
 
 export class MongoTransfersReportingRepo implements ITransfersReportingRepo {
@@ -97,7 +97,7 @@ export class MongoTransfersReportingRepo implements ITransfersReportingRepo {
         throw new Error("not implemented");
     }
 
-    async getTransferById(transferId: string): Promise<IReportingTransferObject | null> {
+    async getTransferById(transferId: string): Promise<ITransferReport | null> {
         const transfer = await this.transfers.findOne({ transferId: transferId }).catch((e: unknown) => {
 			this._logger.error(`Unable to get transfer by id: ${(e as Error).message}`);
 			throw new UnableToGetTransferError(`${(e as Error).message}`);
@@ -110,7 +110,7 @@ export class MongoTransfersReportingRepo implements ITransfersReportingRepo {
 		return this.mapToTransfer(transfer);
     }
 
-    async addTransfer(transfer: IReportingTransferObject): Promise<string> {
+    async addTransfer(transfer: ITransferReport): Promise<string> {
 		if (!transfer.transferId) {
             throw new Error("Missing transfer ID");
         } else {
@@ -128,7 +128,7 @@ export class MongoTransfersReportingRepo implements ITransfersReportingRepo {
         return transfer.transferId;
     }
 
-    async updateTransfer(transfer: IReportingTransferObject): Promise<void> {
+    async updateTransfer(transfer: ITransferReport): Promise<void> {
         const result = await this.transfers.updateOne({transferId: transfer.transferId, }, { $set: transfer }).catch((e: unknown) => {
 			this._logger.error(`Unable to update transfer: ${(e as Error).message}`);
 			throw new UnableToUpdateTransferError(`${(e as Error).message}`);
@@ -139,8 +139,8 @@ export class MongoTransfersReportingRepo implements ITransfersReportingRepo {
         }
     }
 
-    private mapToTransfer(transfer: WithId<Document>): IReportingTransferObject {
-		const transferMapped: IReportingTransferObject = {
+    private mapToTransfer(transfer: WithId<Document>): ITransferReport {
+		const transferMapped: ITransferReport = {
 			createdAt: transfer.createdAt ?? null,
 			updatedAt: transfer.updatedAt ?? null,
 			transferId: transfer.transferId ?? null,

@@ -30,10 +30,12 @@
 
 "use strict";
 
-import {IParticipant} from "@mojaloop/participant-bc-public-types-lib";
+import {
+    IParticipantReport
+} from "@mojaloop/reporting-bc-types-lib";
 
 export interface IParticipantsServiceAdapter {
-    getParticipantInfo(fspId: string): Promise<IParticipant| null>;
-    getParticipantsInfo(fspIds: string[]): Promise<IParticipant[]|null>;
+    getParticipantInfo(fspId: string): Promise<IParticipantReport| null>;
+    getParticipantsInfo(fspIds: string[]): Promise<IParticipantReport[]|null>;
 }
 
