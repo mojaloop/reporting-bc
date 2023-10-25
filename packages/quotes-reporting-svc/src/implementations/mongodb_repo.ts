@@ -27,6 +27,7 @@
 
  * ThitsaWorks
  - Myo Min Htet <myo.htet@thitsaworks.com>
+ - Sithu Kyaw <sithu.kyaw@thitsaworks.com>
 
  --------------
  ******/
@@ -38,6 +39,7 @@ import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { Collection, Document, MongoClient, WithId } from "mongodb";
 import { IQuoteReport } from "@mojaloop/reporting-bc-types-lib";
 import { randomUUID } from "crypto";
+import { QuoteAlreadyExistsError, UnableToAddQuoteError } from "../types/errors";
 
 export class MongoDbQuotesReportingRepo implements IMongoDbQuotesReportingRepo {
 
@@ -64,7 +66,7 @@ export class MongoDbQuotesReportingRepo implements IMongoDbQuotesReportingRepo {
             this._logger.error(err);
             this._logger.isWarnEnabled() &&
                 this._logger.warn(
-                    `MongoDbParticipantRepo - init failed with error: ${err?.message?.toString()}`
+                    `MongoDbQuoteRepo - init failed with error: ${err?.message?.toString()}`
                 );
             throw err;
         }
@@ -75,7 +77,7 @@ export class MongoDbQuotesReportingRepo implements IMongoDbQuotesReportingRepo {
 
         const collections = await db.listCollections().toArray();
 
-        // Check if the Participants collection already exists or create.
+        // Check if the Quote collection already exists or create.
         if (
             collections.find((col) => col.name === this._collectionNameQuote)
         ) {
@@ -87,7 +89,7 @@ export class MongoDbQuotesReportingRepo implements IMongoDbQuotesReportingRepo {
                 this._collectionNameQuote
             );
             await this._collectionQuotes.createIndex(
-                { id: 1 },
+                { "quoteId": 1 },
                 { unique: true }
             );
         }
@@ -97,19 +99,22 @@ export class MongoDbQuotesReportingRepo implements IMongoDbQuotesReportingRepo {
     }
 
     async addQuote(quote: IQuoteReport): Promise<string> {
-        const quoteToAdd = { ...quote };
-        if (quoteToAdd.quoteId) {
-            await this.checkIfQuoteExists(quote);
+
+        if (!quote.quoteId) {
+            throw new Error("Missing quoteId.");
+        } else {
+            const existingQuote = await this.getQuoteById(quote.quoteId);
+            if (existingQuote) {
+                throw new QuoteAlreadyExistsError("Quote already exist!");
+            }
         }
 
-        await this._collectionQuotes.insertOne(quoteToAdd).catch((e: unknown) => {
-            this._logger.error(
-                `Unable to insert quote: ${(e as Error).message}`
-            );
-            throw new Error("Unable to insert quote");
+        await this._collectionQuotes.insertOne(quote).catch((e: unknown) => {
+            this._logger.error(`Unable to insert quote: ${(e as Error).message}`);
+            throw new UnableToAddQuoteError(`${(e as Error).message}`);
         });
-
-        return quoteToAdd.quoteId;
+        
+        return quote.quoteId;
     }
 
     async addQuotes(quotes: IQuoteReport[]): Promise<void> {

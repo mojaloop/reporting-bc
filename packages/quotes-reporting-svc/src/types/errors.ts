@@ -35,12 +35,27 @@
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
 
+ * ThitsaWorks 
+ - Myo Min Htet <myo.htet@thitsaworks.com>
+ - Sithu Kyaw <sithu.kyaw@thitsaworks.com>
  --------------
  **/
 
  "use strict";
 
 export class GetAccountLookupAdapterError extends Error {
+    constructor(message: string) {
+        super(message);
+    }
+}
+
+export class QuoteAlreadyExistsError extends Error {
+    constructor(message: string) {
+        super(message);
+    }
+}
+
+export class UnableToAddQuoteError extends Error {
     constructor(message: string) {
         super(message);
     }

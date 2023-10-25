@@ -27,6 +27,10 @@
  - José Antunes <jose.antunes@arg.software>
  - Rui Rocha <rui.rocha@arg.software>
 
+ * ThitsaWorks
+ - Myo Min Htet <myo.htet@thitsaworks.com>
+ - Sithu Kyaw <sithu.kyaw@thitsaworks.com>
+
  --------------
  **/
 

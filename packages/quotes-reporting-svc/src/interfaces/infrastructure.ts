@@ -26,6 +26,7 @@
  - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
  * ThitsaWorks
+ - Myo Min Htet <myo.htet@thitsaworks.com>
  - Sithu Kyaw <sithu.kyaw@thitsaworks.com>
 
  --------------

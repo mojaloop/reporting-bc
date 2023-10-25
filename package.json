@@ -16,6 +16,8 @@
         "pre_commit_check": "npm run build && npm run lint && npm run test:unit",
         "start": "npm -ws run start",
         "start:transfers-reporting-svc": "npm -w packages/transfers-reporting-svc run start",
+        "start:participants-reporting-svc": "npm -w packages/participants-reporting-svc run start",
+        "start:quotes-reporting-svc": "npm -w packages/quotes-reporting-svc run start",
         "build": "npm -ws run build",
         "watch": "npm -ws run watch",
         "clean": "npm run clean:dist; npm run clean:npm",
