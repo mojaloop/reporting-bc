@@ -72,6 +72,7 @@ export class TransfersReportingEventHandler {
         console.log(`Got message batch in TransfersEventHandler batch size: ${receivedMessages.length}`);
 
         // this needs to never break
+        // eslint-disable-next-line no-async-promise-executor
         return await new Promise<void>(async (resolve) => {
             try {
                 for (const message of receivedMessages) {
@@ -98,25 +99,30 @@ export class TransfersReportingEventHandler {
         const now = Date.now();
         const payload: TransferPreparedEvtPayload = event.payload;
 
-        const transfer: ITransferReport = {
-            createdAt: now,
-            updatedAt: now,
-            transferId: payload.transferId,
-            payeeFspId: payload.payeeFsp,
-            payerFspId: payload.payerFsp,
-            amount: payload.amount,
-            currencyCode: payload.currencyCode,
-            expirationTimestamp: payload.expiration,
-            transferState: TransferState.RESERVED,
-            completedTimestamp: null,
-            extensionList: null,
-            errorInformation: null,
-            settlementModel: payload.settlementModel,
-            preparedAt: payload.preparedAt,
-            fulfiledAt: null,
-        };
-
+        console.log(TransferState);
         try {
+            const transfer: ITransferReport = {
+                createdAt: now,
+                updatedAt: now,
+                transferId: payload.transferId,
+                payeeFspId: payload.payeeFsp,
+                payerFspId: payload.payerFsp,
+                amount: payload.amount,
+                currencyCode: payload.currencyCode,
+                expirationTimestamp: payload.expiration,
+                transferState: TransferState.RESERVED,
+                completedTimestamp: null,
+                extensionList: null,
+                errorInformation: null,
+                settlementModel: payload.settlementModel,
+                preparedAt: payload.preparedAt,
+                fulfiledAt: null,
+                batchId: "",
+                batchName: "",
+                journalEntryId: "",
+                matrixId: null
+            };
+
             await this._transferRpRepo.addTransfer(transfer);
 
         } catch (e: unknown) {

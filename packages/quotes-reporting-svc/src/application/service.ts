@@ -58,7 +58,7 @@ import {
 import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-public-types-lib";
 import { ParticipantAdapter } from "../implementations/participant_adapter";
 import { IQuoteSchemeRules } from "../../../reporting-types-lib/dist/quotes";
-import { IAccountLookupServiceAdapter, IMongoDbQuotesReportingRepo, IParticipantsServiceAdapter, IQuotesServiceAdapter } from "../interfaces/infrastructure";
+import { IAccountLookupServiceAdapter, IMongoDbQuotesReportingRepo, IParticipantsServiceAdapter } from "../interfaces/infrastructure";
 import { MongoDbQuotesReportingRepo } from "../implementations/mongodb_repo";
 import { AccountLookupAdapter } from "../implementations/account_lookup_adapter";
 

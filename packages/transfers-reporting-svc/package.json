@@ -38,6 +38,7 @@
     },
     "dependencies": {
         "@mojaloop/logging-bc-client-lib": "^0.1.26",
+        "@mojaloop/reporting-bc-types-lib": "*",
         "@mojaloop/logging-bc-public-types-lib": "~0.1.20",
         "@mojaloop/platform-configuration-bc-client-lib": "~0.3.4",
         "@mojaloop/platform-configuration-bc-public-types-lib": "^0.3.3",

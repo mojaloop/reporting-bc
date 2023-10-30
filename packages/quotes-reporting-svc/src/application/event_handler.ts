@@ -35,7 +35,7 @@
 
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { DomainEventMsg, IMessage, IMessageConsumer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { QuoteBCBulkQuoteExpiredErrorEvent, QuoteBCBulkQuoteExpiredErrorPayload, QuoteBCDestinationParticipantNotFoundErrorEvent, QuoteBCDestinationParticipantNotFoundErrorPayload, QuoteBCInvalidDestinationFspIdErrorEvent, QuoteBCInvalidDestinationFspIdErrorPayload, QuoteBCInvalidRequesterFspIdErrorEvent, QuoteBCInvalidRequesterFspIdErrorPayload, QuoteBCQuoteExpiredErrorEvent, QuoteBCQuoteExpiredErrorPayload, QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent, QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload, QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent, QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload, QuoteBCRequesterParticipantNotFoundErrorEvent, QuoteBCRequesterParticipantNotFoundErrorPayload, QuoteBCUnableToAddQuoteToDatabaseErrorEvent, QuoteBCUnableToAddQuoteToDatabaseErrorPayload, QuoteRequestAcceptedEvt, QuoteResponseAccepted, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { QuoteBCBulkQuoteExpiredErrorEvent, QuoteBCBulkQuoteExpiredErrorPayload, QuoteBCDestinationParticipantNotFoundErrorEvent, QuoteBCDestinationParticipantNotFoundErrorPayload, QuoteBCInvalidDestinationFspIdErrorEvent, QuoteBCInvalidDestinationFspIdErrorPayload, QuoteBCInvalidRequesterFspIdErrorEvent, QuoteBCInvalidRequesterFspIdErrorPayload, QuoteBCQuoteExpiredErrorEvent, QuoteBCQuoteExpiredErrorPayload, QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent, QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload, QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent, QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload, QuoteBCRequesterParticipantNotFoundErrorEvent, QuoteBCRequesterParticipantNotFoundErrorPayload, QuoteBCUnableToAddQuoteToDatabaseErrorEvent, QuoteBCUnableToAddQuoteToDatabaseErrorPayload, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {
 	QuoteRequestReceivedEvt, QuoteResponseReceivedEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
@@ -87,7 +87,7 @@ export class QuotesReportingEventHandler {
 	}
 
 	private async _msgHandler(message: IMessage): Promise<void> {
-
+		// eslint-disable-next-line no-async-promise-executor
 		return await new Promise<void>(async (resolve) => {
 			this._logger.debug(`Got message in QuotesEventHandler with name: ${message.msgName}`);
 			try {
@@ -188,8 +188,7 @@ export class QuotesReportingEventHandler {
 		if (!this._passThroughMode) {
 			try {
 				this._repo.addQuote(quote);
-			}
-			catch (error: any) {
+			} catch (error: any) {
 				this._logger.error(`Error adding quote to database: ${error}`);
 				const errorPayload: QuoteBCUnableToAddQuoteToDatabaseErrorPayload = {
 					errorDescription: "Unable to add quote to database",
@@ -262,8 +261,7 @@ export class QuotesReportingEventHandler {
 
 			try {
 				await this._repo.updateQuote(quote as IQuoteReport);
-			}
-			catch (error: any) {
+			} catch (error: any) {
 				this._logger.error(`Error updating quote: ${error.message}`);
 				/* const errorPayload : QuoteBCUnableToUpdateQuoteInDatabaseErrorPayload = {
 					errorDescription: "Unable to update quote in database",
@@ -424,8 +422,7 @@ export class QuotesReportingEventHandler {
 				};
 				const errorEvent = new QuoteBCBulkQuoteExpiredErrorEvent(errorPayload);
 				return errorEvent;
-			}
-			else {
+			} else {
 				const errorMessage = `Quote with id ${quoteId} has expired at ${expirationDate}`;
 				this._logger.error(errorMessage);
 				const errorPayload: QuoteBCQuoteExpiredErrorPayload = {
