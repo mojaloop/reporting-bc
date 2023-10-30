@@ -32,7 +32,7 @@
 
 import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
 import { Collection, Document, MongoClient, WithId } from 'mongodb';
-import { 
+import {
     UnableToInitTransfersReportingRepoError,
     UnableToCloseDatabaseConnectionError,
 } from "./errors";
@@ -41,43 +41,124 @@ import { IReportingRepo } from '../types';
 
 export class MongoReportingRepo implements IReportingRepo {
     private readonly _logger: ILogger;
-	private readonly _connectionString: string;
-	private readonly _dbName: string;
-	private readonly _colTransfers = "transfers";
+    private readonly _connectionString: string;
+    private readonly _dbName: string;
+    private readonly _colTransfers = "transfers";
+    private readonly _colMatrices = "matrices";
     private mongoClient: MongoClient;
-	private transfers: Collection;
+    private transfers: Collection;
+    private matrices: Collection;
 
     constructor(
         logger: ILogger,
         connectionString: string,
-		dbName: string
+        dbName: string
     ) {
         this._logger = logger.createChild(this.constructor.name);
         this._connectionString = connectionString;
-		this._dbName = dbName;
+        this._dbName = dbName;
     }
 
     async init(): Promise<void> {
         try {
             this.mongoClient = new MongoClient(this._connectionString);
-			await this.mongoClient.connect();
+            await this.mongoClient.connect();
 
             // Get the collections
-			this.transfers = this.mongoClient.db(this._dbName).collection(this._colTransfers);
+            this.transfers = this.mongoClient.db(this._dbName).collection(this._colTransfers);
+            this.matrices = this.mongoClient.db(this._dbName).collection(this._colMatrices);
 
-        } catch (e: unknown) {
+        } catch (e: any) {
             this._logger.error(`Unable to connect to the database: ${(e as Error).message}`);
-			throw new UnableToInitTransfersReportingRepoError();
+            throw new Error(e);
+        }
+    }
+
+    async getSettlementInitiationByMatrixId(matrixId: string): Promise<unknown> {
+        try {
+            const result =
+                this.matrices.aggregate([
+                    {
+                        $match: {
+                            id: matrixId, // Filter by matrices ID
+                        },
+                    },
+                    {
+                        $unwind: '$balancesByParticipant',
+                    },
+                    {
+                        $lookup: {
+                            from: 'participant',
+                            localField: 'balancesByParticipant.participantId',
+                            foreignField: 'id',
+                            as: 'participantInfo',
+                        },
+                    },
+                    {
+                        $unwind: '$participantInfo',
+                    },
+                    {
+                        $project: {
+                            _id: 0,
+                            matricesId: '$id',
+                            participantDescription: '$participantInfo.description',
+                            externalBankAccountId: {
+                                $arrayElemAt: [
+                                    {
+                                        $map: {
+                                            input: {
+                                                $filter: {
+                                                    input: "$participantInfo.participantAccounts",
+                                                    as: "account",
+                                                    cond: { $eq: ["$$account.type", "SETTLEMENT"] }
+                                                }
+                                            },
+                                            as: "account",
+                                            in: "$$account.externalBankAccountId"
+                                        }
+                                    },
+                                    0
+                                ]
+                            },
+                            externalBankAccountName: {
+                                $arrayElemAt: [
+                                    {
+                                        $map: {
+                                            input: {
+                                                $filter: {
+                                                    input: "$participantInfo.participantAccounts",
+                                                    as: "account",
+                                                    cond: { $eq: ["$$account.type", "SETTLEMENT"] }
+                                                }
+                                            },
+                                            as: "account",
+                                            in: "$$account.externalBankAccountName"
+                                        }
+                                    },
+                                    0
+                                ]
+                            },
+                            participantCurrencyCode: '$balancesByParticipant.currencyCode',
+                            participantDebitBalance: '$balancesByParticipant.debitBalance',
+                            participantCreditBalance: '$balancesByParticipant.creditBalance',
+                        },
+                    }
+                ]).toArray();
+
+            return result;
+        } catch (e: unknown) {
+            this._logger.error(e, `getSettlementInitiationByMatrixId: error getting data for matrixId: ${matrixId} - ${e}`);
+            return Promise.reject(e);
         }
     }
 
     async destroy(): Promise<void> {
-		try{
-			await this.mongoClient.close();
+        try {
+            await this.mongoClient.close();
 
-		} catch(e: unknown) {
-			this._logger.error(`Unable to close the database connection: ${(e as Error).message}`);
-			throw new UnableToCloseDatabaseConnectionError();
-		}
-	}
+        } catch (e: unknown) {
+            this._logger.error(`Unable to close the database connection: ${(e as Error).message}`);
+            throw new UnableToCloseDatabaseConnectionError();
+        }
+    }
 }

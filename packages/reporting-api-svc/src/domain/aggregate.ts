@@ -22,8 +22,10 @@
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
 
- * Coil
- - Jason Bruwer <jason.bruwer@coil.com>
+ * ThitsaWorks
+ - Myo Min Htet <myo.htet@thitsaworks.com>",
+ - Sithu Kyaw <sithu.kyaw@thitsaworks.com>",
+ - Zwe Htet Myat <zwehtet.myat@thitsaworks.com>"
 
  --------------
  ******/
@@ -33,17 +35,52 @@
 
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { IReportingRepo } from "../types";
-
+import { AuditSecurityContext, IAuditClient, } from "@mojaloop/auditing-bc-public-types-lib";
+import {
+    CallSecurityContext,
+    ForbiddenError,
+    IAuthorizationClient,
+    MakerCheckerViolationError,
+    UnauthorizedError,
+} from "@mojaloop/security-bc-public-types-lib";
 
 export class ReportingAggregate {
     private _logger: ILogger;
+    private _auditClient: IAuditClient;
+    private _authorizationClient: IAuthorizationClient;
     private readonly _reportingRepo: IReportingRepo;
 
     constructor(
         logger: ILogger,
+        auditClient: IAuditClient,
+        authorizationClient: IAuthorizationClient,
         reportingRepo: IReportingRepo,
     ) {
         this._logger = logger;
+        this._auditClient = auditClient;
+        this._authorizationClient = authorizationClient;
         this._reportingRepo = reportingRepo;
     }
+
+    // private _enforcePrivilege(secCtx: CallSecurityContext, privName: string): void {
+    //     for (const roleId of secCtx.platformRoleIds) {
+    //         if (this._authorizationClient.roleHasPrivilege(roleId, privName)) return;
+    //     }
+    //     throw new ForbiddenError(
+    //         `Required privilege "${privName}" not held by caller`
+    //     );
+    // }
+    
+    async getSettlementInitiationByMatrixId(secCtx: CallSecurityContext, id: string): Promise<unknown> {
+        // this._enforcePrivilege(secCtx, ParticipantPrivilegeNames.VIEW_PARTICIPANT);
+
+        const result = await this._reportingRepo.getSettlementInitiationByMatrixId(id);
+        if (result == null)
+            throw new Error(
+                `Settlement matrix with ID: '${id}' not found.`
+            );
+        
+        return result;
+    }
+
 }

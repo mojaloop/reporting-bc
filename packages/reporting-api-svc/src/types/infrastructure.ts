@@ -33,5 +33,6 @@
 
 export interface IReportingRepo {
     init(): Promise<void>;
+    getSettlementInitiationByMatrixId(matrixId: string): Promise<unknown>;
 	destroy(): Promise<void>;
 }
