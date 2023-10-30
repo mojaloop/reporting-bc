@@ -105,8 +105,7 @@ export abstract class BaseRoutes {
     ) {
         const authorizationHeader = req.headers["authorization"];
 
-        if (!authorizationHeader)
-        {
+        if (!authorizationHeader) {
             return res.sendStatus(401);
         }
 

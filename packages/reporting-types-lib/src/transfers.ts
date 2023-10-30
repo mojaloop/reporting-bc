@@ -77,4 +77,10 @@ export interface ITransferReport {
 	settlementModel: string | "DEFAULT";
     preparedAt: number;
     fulfiledAt: number | null;
+
+    //settlement transfer
+    batchId: string;
+	batchName: string;
+	journalEntryId: string;
+	matrixId: string | null;
 }

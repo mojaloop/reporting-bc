@@ -22,17 +22,17 @@
  * Gates Foundation
  - Name Surname <name.surname@gatesfoundation.com>
 
- * Crosslake
- - Pedro Sousa Barreto <pedrob@crosslaketech.com>
+ * ThitsaWorks
+ - Myo Min Htet <myo.htet@thitsaworks.com>
+
 
  --------------
  ******/
 
- "use strict";
+"use strict";
 
- export * from "./participants";
- export * from "./transfers";
- export * from "./quotes";
- export * from "./enums";
- export * from "./settlements";
- 
+import {Service} from "./service";
+
+Service.start().then(() => {
+    console.log("Service start complete");
+});
