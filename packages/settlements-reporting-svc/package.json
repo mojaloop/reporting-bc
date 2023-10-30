@@ -1,7 +1,7 @@
 {
-    "name": "@mojaloop/reporting-bc-participants-reporting-svc",
+    "name": "@mojaloop/reporting-bc-settlements-reporting-svc",
     "version": "0.0.1",
-    "description": "mojaloop participants reporting service",
+    "description": "mojaloop settlements reporting service",
     "license": "Apache-2.0",
     "homepage": "https://github.com/mojaloop/reporting-bc/",
     "private": false,

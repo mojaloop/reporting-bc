@@ -156,6 +156,11 @@ export class MongoTransfersReportingRepo implements ITransfersReportingRepo {
 			settlementModel: transfer.settlementModel ?? null,
             preparedAt: transfer.preparedAt ?? null,
             fulfiledAt: transfer.fulfiledAt ?? null,
+            batchId: transfer.batchId ?? "",
+            batchName: transfer.batchName ?? "",
+            journalEntryId: transfer.journalEntryId ?? "",
+            matrixId: transfer.matrixId ?? null
+
 		};
 
 		return transferMapped;

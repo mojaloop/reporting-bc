@@ -1,7 +1,7 @@
 {
   "include": [
     "**/src/**/*.ts"
-, "packages/reporting-types-lib/src/transfers.ts", "packages/reporting-types-lib/src/index.ts", "packages/reporting-types-lib/src/enums.ts", "packages/reporting-types-lib/src/participants.ts"  ],
+, "packages/reporting-types-lib/src/transfers.ts", "packages/reporting-types-lib/src/index.ts", "packages/reporting-types-lib/src/enums.ts", "packages/reporting-types-lib/src/participants.ts", "packages/reporting-types-lib/src/settlements.ts"  ],
   "exclude": [
     "node_modules",
     "**/*.spec.ts",

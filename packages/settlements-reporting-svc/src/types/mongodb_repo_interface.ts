@@ -25,14 +25,28 @@
  * Crosslake
  - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
+ * ThitsaWorks
+ - Myo Min Htet <myo.htet@thitsaworks.com>
+
  --------------
  ******/
 
- "use strict";
+"use strict";
 
- export * from "./participants";
- export * from "./transfers";
- export * from "./quotes";
- export * from "./enums";
- export * from "./settlements";
- 
+import {
+    ISettlementMatrix, ISettlementBatch, ITransferReport
+} from "@mojaloop/reporting-bc-types-lib";
+
+export interface ISettlementsReportingRepo {
+    init(): Promise<void>;
+
+    storeMatrix(matrix: ISettlementMatrix): Promise<boolean>;
+
+    storeBatch(batche: ISettlementBatch): Promise<boolean>;
+
+    getTransferById(transferId:string):Promise<ITransferReport|null>;
+
+    storeTransfer(transfer: ITransferReport): Promise<boolean>;
+
+    destroy(): Promise<void>;
+}

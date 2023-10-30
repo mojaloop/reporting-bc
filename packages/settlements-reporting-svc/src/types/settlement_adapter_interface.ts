@@ -28,11 +28,18 @@
  --------------
  ******/
 
- "use strict";
-
- export * from "./participants";
- export * from "./transfers";
- export * from "./quotes";
- export * from "./enums";
- export * from "./settlements";
  
+"use strict";
+
+import {
+    ISettlementBatch,
+    ISettlementBatchTransfer,
+    ISettlementMatrix
+} from "@mojaloop/reporting-bc-types-lib";
+
+export interface ISettlementServiceAdapter {
+    getSettlementMatrixByMatrixId(matrixId: string): Promise<ISettlementMatrix| null>;
+    getBatchByBatchId(batchId: string): Promise<ISettlementBatch| null>;
+    getSettlementBatchTransfersByMatrixId(matrixId: string): Promise<ISettlementBatchTransfer[]| null>;
+}
+

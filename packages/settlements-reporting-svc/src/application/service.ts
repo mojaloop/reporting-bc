@@ -40,7 +40,7 @@ import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 
 import { IMessageConsumer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { ParticipantsReportingEventHandler } from "./event_handler";
+import { SettlementReportingEventHandler } from "./event_handler";
 
 import process from "process";
 import util from "util";
@@ -49,25 +49,23 @@ import {
     MLKafkaJsonConsumerOptions
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
-    AuthenticatedHttpRequester,
     TokenHelper
 } from "@mojaloop/security-bc-client-lib";
-import { IMongoDbParticipantReportingRepo } from "../types/mongodb_repo_interface";
-import { IParticipantsServiceAdapter } from "../types/participant_adapter_interface";
-import { MongoDbParticipantReportingRepo } from "../implementations/mongodb_repo";
-import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-public-types-lib";
-import { ParticipantAdapter } from "../implementations/participant_adapter";
+import { ISettlementsReportingRepo } from "../types/mongodb_repo_interface";
+import { SettlementsReportingRepo } from "../implementations/mongodb_repo";
+import { ISettlementServiceAdapter } from "../types/settlement_adapter_interface";
+import { SettlementsAdapter } from "../implementations/settlement_adapter";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../../package.json");
 
 // constants
 const BC_NAME = "reporting-bc";
-const APP_NAME = "participants-reporting-svc";
+const APP_NAME = "settlements-reporting-svc";
 const APP_VERSION = packageJSON.version;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 
-const SVC_DEFAULT_HTTP_PORT = 5002;
+const SVC_DEFAULT_HTTP_PORT = 5004;
 
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
@@ -78,10 +76,10 @@ const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@local
 
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 
-const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "reporting-bc-participants-reporting-svc";
+const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "reporting-bc-settlements-reporting-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
-const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
+const SETTLEMENTS_SVC_URL = process.env["SETTLEMENTS_SVC_URL"] || "http://localhost:3600";
 const SERVICE_START_TIMEOUT_MS = 60_000;
 
 
@@ -94,7 +92,7 @@ const kafkaConsumerOptions: MLKafkaJsonConsumerOptions = {
     kafkaGroupId: `${BC_NAME}_${APP_NAME}`
 };
 
-const PARTICIPANTS_CLIENT_CACHE_MS = 10_000;
+const SETTLEMENTS_CLIENT_CACHE_MS = 10_000;
 let globalLogger: ILogger;
 
 export class Service {
@@ -103,16 +101,16 @@ export class Service {
     static expressServer: Server;
     static startupTimer: NodeJS.Timeout;
     static messageConsumer: IMessageConsumer;
-    static handler: ParticipantsReportingEventHandler;
-    static participantRepo: IMongoDbParticipantReportingRepo;
-    static participantAdapter: IParticipantsServiceAdapter;
+    static handler: SettlementReportingEventHandler;
+    static settlementRepo: ISettlementsReportingRepo;
     static tokenHelper: TokenHelper;
+    static settlementAdapter: ISettlementServiceAdapter; 
 
     static async start(
         logger?: ILogger,
         messageConsumer?: IMessageConsumer,
-        participantRepo?: IMongoDbParticipantReportingRepo,
-        participantAdapter?: IParticipantsServiceAdapter
+        settlementRepo?: ISettlementsReportingRepo,
+        settlementAdapter?: ISettlementServiceAdapter
     ): Promise<void> {
         console.log(`Service starting with PID: ${process.pid}`);
 
@@ -132,7 +130,7 @@ export class Service {
             await (logger as KafkaLogger).init();
         }
         globalLogger = this.logger = logger;
-        
+
         if (!messageConsumer) {
             const consumerHandlerLogger = logger.createChild("handlerConsumer");
             consumerHandlerLogger.setLogLevel(LogLevel.INFO);
@@ -140,24 +138,22 @@ export class Service {
         }
         this.messageConsumer = messageConsumer;
 
-        if (!participantRepo) {
-            participantRepo = new MongoDbParticipantReportingRepo(MONGO_URL, logger);
+        if (!settlementRepo) {
+            settlementRepo = new SettlementsReportingRepo(MONGO_URL, logger);
 
-            await participantRepo.init();
-            logger.info("Participants reporting Repo Initialized");
+            await settlementRepo.init();
+            logger.info("Settlements reporting Repo Initialized");
         }
-        this.participantRepo = participantRepo;
+        this.settlementRepo = settlementRepo;
 
-        if (!participantAdapter) {
-            const authRequester: IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
-            authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-            participantAdapter = new ParticipantAdapter(this.logger, PARTICIPANTS_SVC_URL, authRequester, PARTICIPANTS_CLIENT_CACHE_MS);
+        if (!settlementAdapter) {
+            settlementAdapter = new SettlementsAdapter(this.logger, SETTLEMENTS_SVC_URL, AUTH_N_SVC_TOKEN_URL, SVC_CLIENT_ID, SVC_CLIENT_SECRET);
         }
-        this.participantAdapter = participantAdapter;
+        this.settlementAdapter = settlementAdapter;
 
-        // TODO start actual service code
-
-        this.handler = new ParticipantsReportingEventHandler(this.messageConsumer, this.logger, this.participantRepo, this.participantAdapter);
+        
+        
+        this.handler = new SettlementReportingEventHandler(this.messageConsumer, this.logger, this.settlementRepo, this.settlementAdapter);
         await this.handler.start();
 
         await this.setupExpress();
@@ -177,10 +173,6 @@ export class Service {
                 return res.send({ status: "OK" });
             });
 
-            // hook actual app routes
-            // const routes = new ExpressRoutes(this.participantAgg, this.tokenHelper, this.logger);
-            // this.app.use("/", routes.MainRouter);
-
             this.app.use((req, res) => {
                 // catch all
                 res.send(404);
@@ -193,7 +185,7 @@ export class Service {
 
             this.expressServer = this.app.listen(portNum, () => {
                 this.logger.info(`🚀 Server ready at port: ${portNum}`);
-                this.logger.info(`Participant Reporting service v: ${APP_VERSION} started`);
+                this.logger.info(`Settlement Reporting service v: ${APP_VERSION} started`);
                 resolve();
             });
         });
