@@ -25,7 +25,8 @@
  * Crosslake
  - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
- * Thitsaworks
+ * ThitsaWorks
+ - Myo Min Htet <myo.htet@thitsaworks.com>
  - Sithu Kyaw <sithu.kyaw@thitsaworks.com>
 
  --------------
@@ -49,7 +50,6 @@ export class QuotesReportingEventHandler {
 	private readonly _logger: ILogger;
 	private readonly _consumer: IMessageConsumer;
 	private readonly _repo: IMongoDbQuotesReportingRepo;
-	//private readonly _quotesAdapter: IQuotesServiceAdapter;
 	private readonly _participantAdapter: IParticipantsServiceAdapter;
 	private readonly _accountlookupAdapter: IAccountLookupServiceAdapter;
 	private readonly _passThroughMode: boolean;
@@ -74,7 +74,7 @@ export class QuotesReportingEventHandler {
 	}
 
 	async start(): Promise<void> {
-		this._consumer.setTopics([QuotingBCTopics.DomainEvents]);
+		this._consumer.setTopics([QuotingBCTopics.DomainRequests,QuotingBCTopics.DomainEvents]);
 		this._consumer.setCallbackFn(this._msgHandler.bind(this));
 		await this._consumer.connect();
 		await this._consumer.startAndWaitForRebalance();
@@ -101,7 +101,7 @@ export class QuotesReportingEventHandler {
 				}
 
 			} catch (err: unknown) {
-				this._logger.error(err, `ParticipantsEventHandler - processing command - ${message?.msgName}:${message?.msgKey}:${message?.msgId} - Error: ${(err as Error)?.message?.toString()}`);
+				this._logger.error(err, `QuotesEventHandler - processing command - ${message?.msgName}:${message?.msgKey}:${message?.msgId} - Error: ${(err as Error)?.message?.toString()}`);
 			} finally {
 				resolve();
 			}
@@ -163,7 +163,6 @@ export class QuotesReportingEventHandler {
 			requesterFspId: message.fspiopOpaqueState.requesterFspId,
 			destinationFspId: message.fspiopOpaqueState.destinationFspId,
 			transactionId: message.payload.transactionId,
-			// TODO: correct in shared tip libs
 			payee: message.payload.payee,
 			payer: message.payload.payer,
 			amountType: message.payload.amountType,

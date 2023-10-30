@@ -27,6 +27,7 @@
 
  * ThitsaWorks
  - Myo Min Htet <myo.htet@thitsaworks.com>
+ - Sithu Kyaw <sithu.kyaw@thitsaworks.com>
 
  --------------
  ******/
@@ -66,7 +67,7 @@ const packageJSON = require("../../package.json");
 
 // constants
 const BC_NAME = "reporting-bc";
-const APP_NAME = "participants-reporting-svc";
+const APP_NAME = "quotes-reporting-svc";
 const APP_VERSION = packageJSON.version;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 
@@ -81,10 +82,10 @@ const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@local
 
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 
-const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "reporting-bc-participants-reporting-svc";
+const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "reporting-bc-quotes-reporting-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
-const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
+const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010"; 
 const SERVICE_START_TIMEOUT_MS = 60_000;
 
 const PASS_THROUGH_MODE = (process.env["PASS_THROUGH_MODE"] === "true") ? true : false;
@@ -157,16 +158,20 @@ export class Service {
         }
         this.quoteRepo = quotesRepo;
 
-        const authRequester: IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
-        authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+
 
         if (!accountlookupAdapter) {
+            const authRequester: IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+            authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
             accountlookupAdapter = new AccountLookupAdapter(this.logger, PARTICIPANTS_SVC_URL, authRequester, PARTICIPANTS_CLIENT_CACHE_MS);
         }
 
         this.accountLookupAdapter = accountlookupAdapter;
 
         if (!participantAdapter) {
+            const authRequester: IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+            authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+
             participantAdapter = new ParticipantAdapter(this.logger, PARTICIPANTS_SVC_URL, authRequester, PARTICIPANTS_CLIENT_CACHE_MS);
         }
 
