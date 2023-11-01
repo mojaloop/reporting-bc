@@ -74,7 +74,7 @@ export class MongoReportingRepo implements IReportingRepo {
         }
     }
 
-    async getSettlementInitiationByMatrixId(matrixId: string): Promise<unknown> {
+    async getSettlementInitiationByMatrixId(matrixId: string): Promise<any> {
         try {
             const result =
                 this.matrices.aggregate([
@@ -100,7 +100,7 @@ export class MongoReportingRepo implements IReportingRepo {
                     {
                         $project: {
                             _id: 0,
-                            matricesId: '$id',
+                            matrixId: '$id',
                             participantDescription: '$participantInfo.description',
                             externalBankAccountId: {
                                 $arrayElemAt: [
@@ -141,6 +141,7 @@ export class MongoReportingRepo implements IReportingRepo {
                             participantCurrencyCode: '$balancesByParticipant.currencyCode',
                             participantDebitBalance: '$balancesByParticipant.debitBalance',
                             participantCreditBalance: '$balancesByParticipant.creditBalance',
+                            settlementCreatedDate: '$createdAt',
                         },
                     }
                 ]).toArray();
@@ -151,6 +152,85 @@ export class MongoReportingRepo implements IReportingRepo {
             return Promise.reject(e);
         }
     }
+
+    // async getSettlementInitiationByMatrixIdExport(matrixId: string): Promise<any> {
+    //     try {
+    //         const result =
+    //             this.matrices.aggregate([
+    //                 {
+    //                     $match: {
+    //                         id: matrixId, // Filter by matrices ID
+    //                     },
+    //                 },
+    //                 {
+    //                     $unwind: '$balancesByParticipant',
+    //                 },
+    //                 {
+    //                     $lookup: {
+    //                         from: 'participant',
+    //                         localField: 'balancesByParticipant.participantId',
+    //                         foreignField: 'id',
+    //                         as: 'participantInfo',
+    //                     },
+    //                 },
+    //                 {
+    //                     $unwind: '$participantInfo',
+    //                 },
+    //                 {
+    //                     $project: {
+    //                         _id: 0,
+    //                         matrixId: '$id',
+    //                         participantDescription: '$participantInfo.description',
+    //                         externalBankAccountId: {
+    //                             $arrayElemAt: [
+    //                                 {
+    //                                     $map: {
+    //                                         input: {
+    //                                             $filter: {
+    //                                                 input: "$participantInfo.participantAccounts",
+    //                                                 as: "account",
+    //                                                 cond: { $eq: ["$$account.type", "SETTLEMENT"] }
+    //                                             }
+    //                                         },
+    //                                         as: "account",
+    //                                         in: "$$account.externalBankAccountId"
+    //                                     }
+    //                                 },
+    //                                 0
+    //                             ]
+    //                         },
+    //                         externalBankAccountName: {
+    //                             $arrayElemAt: [
+    //                                 {
+    //                                     $map: {
+    //                                         input: {
+    //                                             $filter: {
+    //                                                 input: "$participantInfo.participantAccounts",
+    //                                                 as: "account",
+    //                                                 cond: { $eq: ["$$account.type", "SETTLEMENT"] }
+    //                                             }
+    //                                         },
+    //                                         as: "account",
+    //                                         in: "$$account.externalBankAccountName"
+    //                                     }
+    //                                 },
+    //                                 0
+    //                             ]
+    //                         },
+    //                         participantCurrencyCode: '$balancesByParticipant.currencyCode',
+    //                         participantDebitBalance: '$balancesByParticipant.debitBalance',
+    //                         participantCreditBalance: '$balancesByParticipant.creditBalance',
+    //                         settlementCreatedDate: '$createdAt',
+    //                     },
+    //                 }
+    //             ]).toArray();
+
+    //         return result;
+    //     } catch (e: unknown) {
+    //         this._logger.error(e, `getSettlementInitiationByMatrixId: error getting data for matrixId: ${matrixId} - ${e}`);
+    //         return Promise.reject(e);
+    //     }
+    // }
 
     async destroy(): Promise<void> {
         try {
