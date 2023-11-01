@@ -40,6 +40,7 @@ import { ReportingAggregate } from "../../domain/aggregate";
 
 
 export class ExpressRoutes extends BaseRoutes {
+    
     constructor(
         logger: ILogger,
         tokenHelper: TokenHelper,
@@ -50,11 +51,48 @@ export class ExpressRoutes extends BaseRoutes {
         super(logger, reportingRepo, tokenHelper, authorizationClient, aggregate);
 
         // endpoints
-        this.mainRouter.get("/", this.getExample.bind(this));
+        this.mainRouter.get("/settlementInitiationByMatrixId/:id", this.getSettlementInitiationByMatrixId.bind(this));
+        this.mainRouter.get("/settlementInitiationByMatrixIdExport/:id", this.getSettlementInitiationByMatrixIdExport.bind(this));
     }
 
-    private async getExample(req: express.Request, res: express.Response, next: express.NextFunction) {
-        this.logger.debug("Got request to example endpoint");
-        return res.send({resp:"example worked"});
+    private async getSettlementInitiationByMatrixId(req: express.Request, res: express.Response): Promise<void> {
+        const id = req.params["id"] ?? null;
+        this.logger.debug(`Fetching Settlement Initiation data for MatrixId: [${id}].`);
+
+        try {
+            const fetched = await this.aggregate.getSettlementInitiationByMatrixId(
+                req.securityContext!,
+                id
+            );
+            res.send(fetched);
+        } catch (err: any) {
+            this.logger.error(err);
+            res.status(500).json({
+                status: "error",
+                msg: err.message,
+            });
+        }
+    }
+
+    private async getSettlementInitiationByMatrixIdExport(req: express.Request, res: express.Response): Promise<void> {
+        const id = req.params["id"] ?? null;
+        this.logger.debug(`Fetching Settlement Initiation data for MatrixId: [${id}].`);
+
+        try {
+            const fetched = await this.aggregate.getSettlementInitiationByMatrixIdExport(
+                req.securityContext!,
+                id
+            );
+            const buffer = await fetched.xlsx.writeBuffer()
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            res.setHeader('Content-Disposition', 'attachment; filename=settlementInitiation.xlsx')
+            res.status(200).send(buffer);
+        } catch (err: any) {
+            this.logger.error(err);
+            res.status(500).json({
+                status: "error",
+                msg: err.message,
+            });
+        }
     }
 }

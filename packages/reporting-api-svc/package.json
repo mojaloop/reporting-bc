@@ -37,12 +37,16 @@
         "dep:update": "ncu -u"
     },
     "dependencies": {
+        "@mojaloop/auditing-bc-client-lib": "~0.0.15",
+        "@mojaloop/auditing-bc-public-types-lib": "~0.0.17",
         "@mojaloop/logging-bc-client-lib": "^0.1.26",
         "@mojaloop/logging-bc-public-types-lib": "~0.1.20",
         "@mojaloop/platform-configuration-bc-client-lib": "~0.3.4",
         "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "^0.3.67",
+        "@mojaloop/platform-shared-lib-observability-types-lib": "~0.1.9",
         "@mojaloop/security-bc-client-lib": "~0.2.3",
-        "@mojaloop/security-bc-public-types-lib": "~0.2.1",
+        "@mojaloop/security-bc-public-types-lib": "~0.3.3",
+        "exceljs": "^4.4.0",
         "express": "^4.18.2",
         "express-validator": "^7.0.1"
     },

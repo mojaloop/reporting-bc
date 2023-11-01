@@ -40,10 +40,17 @@ import util from "util";
 import { MongoReportingRepo } from "../implementations/mongodb_repo";
 import { IReportingRepo } from "../types";
 import { IAuthorizationClient } from "@mojaloop/security-bc-public-types-lib";
+import {
+    AuditClient,
+    KafkaAuditClientDispatcher,
+    LocalAuditClientCryptoProvider
+} from "@mojaloop/auditing-bc-client-lib";
+import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import { AuthorizationClient, TokenHelper } from "@mojaloop/security-bc-client-lib";
 import { ExpressRoutes } from "./routes/routes";
 import { ReportingPrivilegesDefinition } from "./privileges";
 import { ReportingAggregate } from "../domain/aggregate";
+import { existsSync } from "fs";
 
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -59,6 +66,9 @@ const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEB
 const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
+const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
+
+const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
 
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 const AUTH_N_TOKEN_ISSUER_NAME = process.env["AUTH_N_TOKEN_ISSUER_NAME"] || "mojaloop.vnext.dev.default_issuer";
@@ -72,7 +82,7 @@ const AUTH_Z_SVC_BASEURL = process.env["AUTH_Z_SVC_BASEURL"] || "http://localhos
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "reporting-bc-reporting-api-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
-const SVC_DEFAULT_HTTP_PORT = 5000;
+const SVC_DEFAULT_HTTP_PORT = 5005;
 
 const SERVICE_START_TIMEOUT_MS = 60_000;
 
@@ -90,14 +100,15 @@ export class Service {
     static startupTimer: NodeJS.Timeout;
     static reportingRepo: IReportingRepo;
     static tokenHelper: TokenHelper;
+    static auditClient: IAuditClient;
     static authorizationClient: IAuthorizationClient;
     static aggregate: ReportingAggregate;
 
     static async start(
         logger?: ILogger,
+        auditClient?: IAuditClient,
         authorizationClient?: IAuthorizationClient,
-        reportingRepo?: IReportingRepo,
-        aggregate?: ReportingAggregate,
+        reportingRepo?: IReportingRepo
     ): Promise<void> {
         console.log(`Service starting with PID: ${process.pid}`);
 
@@ -117,26 +128,23 @@ export class Service {
             await (logger as KafkaLogger).init();
         }
         globalLogger = this.logger = logger;
-
-      /*
-      /// start config client - this is not mockable (can use STANDALONE MODE if desired)
-        if(!configProvider) {
-            // create the instance of IAuthenticatedHttpRequester
-            const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
-            authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-
-            const messageConsumer = new MLKafkaJsonConsumer({
-                kafkaBrokerList: KAFKA_URL,
-                kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
-            }, this.logger.createChild("configClient.consumer"));
-            configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
+      
+        // start auditClient
+        if (!auditClient) {
+            if (!existsSync(AUDIT_KEY_FILE_PATH)) {
+                if (PRODUCTION_MODE) process.exit(9);
+                // create e tmp file
+                LocalAuditClientCryptoProvider.createRsaPrivateKeyFileSync(AUDIT_KEY_FILE_PATH, 2048);
+            }
+            const auditLogger = logger.createChild("AuditLogger");
+            auditLogger.setLogLevel(LogLevel.INFO);
+            const cryptoProvider = new LocalAuditClientCryptoProvider(AUDIT_KEY_FILE_PATH);
+            const auditDispatcher = new KafkaAuditClientDispatcher(kafkaProducerOptions, KAFKA_AUDITS_TOPIC, auditLogger);
+            // NOTE: to pass the same kafka logger to the audit client, make sure the logger is started/initialised already
+            auditClient = new AuditClient(BC_NAME, APP_NAME, APP_VERSION, cryptoProvider, auditDispatcher);
+            await auditClient.init();
         }
-
-        this.configClient = GetParticipantsConfigs(configProvider, BC_NAME, APP_NAME, APP_VERSION);
-        await this.configClient.init();
-        await this.configClient.bootstrap(true);
-        await this.configClient.fetch();
-        */
+        this.auditClient = auditClient;
 
         // authorization client
         if (!authorizationClient) {
@@ -167,13 +175,9 @@ export class Service {
         // Initialize the repo
         await this.reportingRepo.init();
 		this.logger.info("Reporting API Repository Initialized");
-
-        // Create the aggregate
-        if (!aggregate) {
-            aggregate = new ReportingAggregate(this.logger, this.reportingRepo);
-        }
-        this.aggregate = aggregate;
-
+        
+        this.aggregate = new ReportingAggregate(this.logger, this.auditClient, this.authorizationClient, this.reportingRepo);
+        
         await this.setupExpress();
 
         // remove startup timeout
