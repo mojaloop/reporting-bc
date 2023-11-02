@@ -31,9 +31,8 @@
 "use strict";
 
 import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
-import { Collection, Document, MongoClient, WithId } from 'mongodb';
+import { Collection, MongoClient } from 'mongodb';
 import {
-    UnableToInitTransfersReportingRepoError,
     UnableToCloseDatabaseConnectionError,
 } from "./errors";
 import { IReportingRepo } from '../types';
@@ -76,6 +75,7 @@ export class MongoReportingRepo implements IReportingRepo {
 
     async getSettlementInitiationByMatrixId(matrixId: string): Promise<any> {
         try {
+            this._logger.info(`Get settlementInitiationbyMatrixId: ${matrixId}`);
             const result =
                 this.matrices.aggregate([
                     {
@@ -153,84 +153,127 @@ export class MongoReportingRepo implements IReportingRepo {
         }
     }
 
-    // async getSettlementInitiationByMatrixIdExport(matrixId: string): Promise<any> {
-    //     try {
-    //         const result =
-    //             this.matrices.aggregate([
-    //                 {
-    //                     $match: {
-    //                         id: matrixId, // Filter by matrices ID
-    //                     },
-    //                 },
-    //                 {
-    //                     $unwind: '$balancesByParticipant',
-    //                 },
-    //                 {
-    //                     $lookup: {
-    //                         from: 'participant',
-    //                         localField: 'balancesByParticipant.participantId',
-    //                         foreignField: 'id',
-    //                         as: 'participantInfo',
-    //                     },
-    //                 },
-    //                 {
-    //                     $unwind: '$participantInfo',
-    //                 },
-    //                 {
-    //                     $project: {
-    //                         _id: 0,
-    //                         matrixId: '$id',
-    //                         participantDescription: '$participantInfo.description',
-    //                         externalBankAccountId: {
-    //                             $arrayElemAt: [
-    //                                 {
-    //                                     $map: {
-    //                                         input: {
-    //                                             $filter: {
-    //                                                 input: "$participantInfo.participantAccounts",
-    //                                                 as: "account",
-    //                                                 cond: { $eq: ["$$account.type", "SETTLEMENT"] }
-    //                                             }
-    //                                         },
-    //                                         as: "account",
-    //                                         in: "$$account.externalBankAccountId"
-    //                                     }
-    //                                 },
-    //                                 0
-    //                             ]
-    //                         },
-    //                         externalBankAccountName: {
-    //                             $arrayElemAt: [
-    //                                 {
-    //                                     $map: {
-    //                                         input: {
-    //                                             $filter: {
-    //                                                 input: "$participantInfo.participantAccounts",
-    //                                                 as: "account",
-    //                                                 cond: { $eq: ["$$account.type", "SETTLEMENT"] }
-    //                                             }
-    //                                         },
-    //                                         as: "account",
-    //                                         in: "$$account.externalBankAccountName"
-    //                                     }
-    //                                 },
-    //                                 0
-    //                             ]
-    //                         },
-    //                         participantCurrencyCode: '$balancesByParticipant.currencyCode',
-    //                         participantDebitBalance: '$balancesByParticipant.debitBalance',
-    //                         participantCreditBalance: '$balancesByParticipant.creditBalance',
-    //                         settlementCreatedDate: '$createdAt',
-    //                     },
-    //                 }
-    //             ]).toArray();
+    async getDFSPSettlementDetail(participantId: string, matrixId: string): Promise<any> {
+        try {
+            this._logger.info(`Get DFSPSettlementDetail by participantId: ${participantId} and matrixId: ${matrixId}`);
 
-    //         return result;
-    //     } catch (e: unknown) {
-    //         this._logger.error(e, `getSettlementInitiationByMatrixId: error getting data for matrixId: ${matrixId} - ${e}`);
-    //         return Promise.reject(e);
-    //     }
-    // }
+            const result =
+                this.transfers.aggregate([
+                    {
+                        $match: {
+                            matrixId: matrixId
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'matrices',
+                            localField: 'matrixId',
+                            foreignField: 'id',
+                            as: 'matrices'
+                        }
+                    },
+                    {
+                        $unwind: '$matrices'
+                    },
+                    {
+                        $lookup: {
+                            from: 'participant',
+                            localField: 'payerFspId',
+                            foreignField: 'id',
+                            as: 'payerParticipant'
+                        }
+                    },
+                    {
+                        $unwind: '$payerParticipant'
+                    },
+                    {
+                        $lookup: {
+                            from: 'participant',
+                            localField: 'payeeFspId',
+                            foreignField: 'id',
+                            as: 'payeeParticipant'
+                        }
+                    },
+                    {
+                        $unwind: '$payeeParticipant'
+                    },
+                    {
+                        $lookup: {
+                            from: 'quote',
+                            localField: 'transferId',
+                            foreignField: 'transactionId',
+                            as: 'quote'
+                        }
+                    },
+                    {
+                        $unwind: '$quote'
+                    },
+                    {
+                        $match: {
+                            $or: [
+                                { 'payerFspId': participantId },
+                                { 'payeeFspId': participantId }
+                            ]
+                        }
+                    },
+                    {
+                        $project: {
+                            '_id': 0,
+                            'matrixId': '$matrixId',
+                            'settlementDate': '$matrices.createdAt',
+                            'payerFspId': '$payerFspId',
+                            'payerParticipantName': '$payerParticipant.name',
+                            'payeeFspId': '$payeeFspId',
+                            'payeeParticipantName': '$payeeParticipant.name',
+                            'transferId': '$transferId',
+                            'transactionType': '$quote.transactionType.scenario',
+                            'transactionDate': '$completedTimestamp',
+                            'payerIdType': '$quote.payer.partyIdInfo.partyIdType',
+                            'payerIdentifier': '$quote.payer.partyIdInfo.partyIdentifier',
+                            'payeeIdType': '$quote.payee.partyIdInfo.partyIdType',
+                            'payeeIdentifier': '$quote.payee.partyIdentifier',
+                            'Amount': '$amount',
+                            'Currency': '$currencyCode'
+                        }
+                    }
+                ]).toArray();
+
+            return result;
+        } catch (e: unknown) {
+            this._logger.error(e, `getSettlementInitiationByMatrixId: error getting data for matrixId: ${matrixId} - ${e}`);
+            return Promise.reject(e);
+        }
+    }
+
+    async getSettlementMatricesByDfspNameAndFromDateToDate(participantId: string, startDate: number, endDate: number): Promise<any> {
+        try {
+            this._logger.info(`Get getSettlementMatricesByDfspNameAndFromDateToDate`);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const filter: any = { $and: [] };
+            if (participantId) {
+                filter.$and.push({ "balancesByParticipant.participantId": { "$regex": participantId, "$options": "i" } });
+            }
+            if (startDate) {
+                filter.$and.push({ updatedAt: { $gte: startDate } });
+            }
+            if (endDate) {
+                filter.$and.push({ updatedAt: { $lte: endDate } });
+            }
+
+            const matrices = await this.matrices.find(
+                filter,
+                { sort: ["updatedAt", "desc"], projection: { _id: 0, id: 1 } }
+            ).toArray().catch((e: unknown) => {
+                this._logger.error(`Unable to get matrixIds: ${(e as Error).message}`);
+                throw new Error(`Unable to get matrixIds: ${(e as Error).message}`);
+            });
+
+            return matrices;
+        } catch (e: unknown) {
+            this._logger.error(e, `getSettlementMatricesByDfspNameAndFromDateToDate for : ${participantId} , ${startDate} and ${endDate} - ${e}`);
+            return Promise.reject(e);
+        }
+    }
 
     async destroy(): Promise<void> {
         try {

@@ -51,8 +51,13 @@ export class ExpressRoutes extends BaseRoutes {
         super(logger, reportingRepo, tokenHelper, authorizationClient, aggregate);
 
         // endpoints
+        this.mainRouter.get("/settlementMatrixIds", this.getSettlementMatrixIds.bind(this));
+
         this.mainRouter.get("/settlementInitiationByMatrixId/:id", this.getSettlementInitiationByMatrixId.bind(this));
+        
         this.mainRouter.get("/settlementInitiationByMatrixIdExport/:id", this.getSettlementInitiationByMatrixIdExport.bind(this));
+        
+        this.mainRouter.get("/dfspSettlementDetail", this.getDFSPSettlementDetail.bind(this));
     }
 
     private async getSettlementInitiationByMatrixId(req: express.Request, res: express.Response): Promise<void> {
@@ -95,4 +100,57 @@ export class ExpressRoutes extends BaseRoutes {
             });
         }
     }
+
+    private async getDFSPSettlementDetail(req: express.Request, res: express.Response): Promise<void> {
+        
+        const participantId = req.query.participantId as string || req.query.participantId as string;
+		const matrixId = req.query.matrixId as string || req.query.matrixid as string;
+        
+        this.logger.debug(`Fetching DFSP Settlement Detail data for ParticipantId: ${participantId} and MatrixId: ${matrixId}.`);
+
+        try {
+            if(!participantId || !matrixId){
+                throw new Error('Invalid input parameters.');
+            }
+            const fetched = await this.aggregate.getDFSPSettlementDetail(
+                req.securityContext!,
+                participantId,
+                matrixId
+            );
+            res.send(fetched);
+        } catch (err: any) {
+            this.logger.error(err);
+            res.status(500).json({
+                status: "error",
+                msg: err.message,
+            });
+        }
+    }
+
+    private async getSettlementMatrixIds(req: express.Request, res: express.Response): Promise<void> {
+        try{
+            const participantId = req.query.participantId as string;
+            const startDateStr = req.query.startDate as string || req.query.startdate as string;
+            const startDate = startDateStr ? parseInt(startDateStr) : undefined;
+            const endDateStr = req.query.endDate as string || req.query.enddate as string;
+            const endDate = endDateStr ? parseInt(endDateStr) : undefined;
+            
+            this.logger.debug("Fetching all matrixIds");
+
+            let fetched = [];
+            if (participantId && startDate && endDate) {
+                fetched = await this.aggregate.getSettlementMatricesByDfspNameAndFromDateToDate(req.securityContext!,participantId, startDate, endDate);
+            } else {
+                //will put other scenario later
+            }
+            res.send(fetched);
+        } catch (err: any) {
+            this.logger.error(err);
+            res.status(500).json({
+                status: "error",
+                msg: err.message,
+            });
+        }
+    }
+
 }
