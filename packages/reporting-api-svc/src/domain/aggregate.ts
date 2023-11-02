@@ -77,6 +77,7 @@ export class ReportingAggregate {
     async getSettlementInitiationByMatrixId(secCtx: CallSecurityContext, id: string): Promise<unknown> {
         // this._enforcePrivilege(secCtx, ParticipantPrivilegeNames.VIEW_PARTICIPANT);
 
+
         const result = await this._reportingRepo.getSettlementInitiationByMatrixId(id);
         if (result == null)
             throw new Error(
@@ -89,6 +90,8 @@ export class ReportingAggregate {
     async getSettlementInitiationByMatrixIdExport(secCtx: CallSecurityContext, id: string): Promise<any> {
         // this._enforcePrivilege(secCtx, ParticipantPrivilegeNames.VIEW_PARTICIPANT);
 
+        this._logger.info(`Get settlementInitiationbyMatrixIdExport`);
+        
         const result = await this._reportingRepo.getSettlementInitiationByMatrixId(id);
         if (result == null)
             throw new Error(
@@ -178,5 +181,29 @@ export class ReportingAggregate {
         });
 
         return workbook;
+    }
+
+    async getDFSPSettlementDetail(secCtx: CallSecurityContext, participantId: string, matrixId: string): Promise<any> {
+        // this._enforcePrivilege(secCtx, ParticipantPrivilegeNames.VIEW_PARTICIPANT);
+
+        const result = await this._reportingRepo.getDFSPSettlementDetail(participantId,matrixId);
+        if (result == null)
+            throw new Error(
+                `DFSP Settlement Detail with participantId: ${participantId} and matrixId: ${matrixId} not found.`
+            );
+
+        return result;
+    }
+
+    async getSettlementMatricesByDfspNameAndFromDateToDate(secCtx: CallSecurityContext, participantId: string, startDate: number, endDate: number): Promise<any> {
+        // this._enforcePrivilege(secCtx, ParticipantPrivilegeNames.VIEW_PARTICIPANT);
+
+        const result = await this._reportingRepo.getSettlementMatricesByDfspNameAndFromDateToDate(participantId,startDate, endDate);
+        if (result == null)
+            throw new Error(
+                `Matrices with participantId: ${participantId}, StartDate: ${startDate} and EndDate: ${endDate} not found.`
+            );
+
+        return result;
     }
 }
