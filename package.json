@@ -18,6 +18,8 @@
         "start:transfers-reporting-svc": "npm -w packages/transfers-reporting-svc run start",
         "start:participants-reporting-svc": "npm -w packages/participants-reporting-svc run start",
         "start:quotes-reporting-svc": "npm -w packages/quotes-reporting-svc run start",
+        "start:settlements-reporting-svc": "npm -w packages/settlements-reporting-svc run start",
+        "start:reporting-api-svc": "npm -w packages/reporting-api-svc run start",
         "build": "npm -ws run build",
         "watch": "npm -ws run watch",
         "clean": "npm run clean:dist; npm run clean:npm",

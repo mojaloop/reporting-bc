@@ -240,7 +240,174 @@ export class MongoReportingRepo implements IReportingRepo {
 
             return result;
         } catch (e: unknown) {
-            this._logger.error(e, `getSettlementInitiationByMatrixId: error getting data for matrixId: ${matrixId} - ${e}`);
+            this._logger.error(e, `getDFSPSettlementDetail error getting data for participantId: ${participantId} and matrixId: ${matrixId} - ${e}`);
+            return Promise.reject(e);
+        }
+    }
+
+    async getDFSPSettlement(participantId: string, matrixId: string): Promise<any> {
+        try {
+            this._logger.info(`Get DFSPSettlement by participantId: ${participantId} and matrixId: ${matrixId}`);
+
+            const result =
+                this.transfers.aggregate([
+                    {
+                        $match: {
+                            matrixId: matrixId
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: 'matrices',
+                            localField: 'matrixId',
+                            foreignField: 'id',
+                            as: 'matrices'
+                        }
+                    },
+                    {
+                        $unwind: '$matrices'
+                    },
+                    {
+                        $match: {
+                            $or: [
+                                { 'payerFspId': participantId },
+                                { 'payeeFspId': participantId }
+                            ]
+                        }
+                    },
+                    {
+                        $project: {
+                            '_id': 0,
+                            'matrixId': '$matrixId',
+                            'settlementDate': '$matrices.createdAt',
+                            'paramParticipantId': participantId,
+                            'relateParticipantId': {
+                                                    $cond: [
+                                                            { $eq: ['$payerFspId', participantId] },
+                                                            '$payeeFspId',
+                                                            '$payerFspId'
+                                                        ]
+                                                },
+                            'direction': {
+                                            $cond: [
+                                                    { $eq: ['$payerFspId', participantId] },
+                                                    'sent',
+                                                    'recieved'
+                                                ]
+                                        },
+                            'amount': { $toDouble: '$amount' },
+                            'currency': '$currencyCode'
+                        }
+                    },
+                    {
+                        $group: {
+                             _id: {
+                                paramParticipantId: '$paramParticipantId',
+                                relateParticipantId: '$relateParticipantId',
+                                currency: '$currency',
+                                matrixId: '$matrixId',
+                                settlementDate: '$settlementDate'
+                            },
+                            totalAmountSent: {
+                                $sum: {
+                                    $cond: [
+                                        { $eq: ['$direction', 'sent'] },
+                                        '$amount',
+                                        0
+                                    ]
+                                }
+                            },
+                            totalSentCount: {
+                                $sum: {
+                                    $cond: [
+                                        { $eq: ['$direction', 'sent'] },
+                                        1,
+                                        0
+                                    ]
+                                }
+                            },
+                            totalAmountReceived: {
+                                $sum: {
+                                    $cond: [
+                                        { $eq: ['$direction', 'recieved'] },
+                                        '$amount',
+                                        0
+                                    ]
+                                }
+                            },
+                            totalReceivedCount: {
+                                $sum: {
+                                    $cond: [
+                                        { $eq: ['$direction', 'recieved'] },
+                                        1,
+                                        0
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    {
+                        $sort: {
+                            '_id.relateParticipantId': 1,
+                            '_id.currency': 1
+                        }
+                    },
+                    {
+                        $project: {
+                            _id: 0,
+                            matrixId: '$_id.matrixId',
+                            settlementDate: '$_id.settlementDate',
+                            paramParticipantId: '$_id.paramParticipantId',
+                            relateParticipantId: '$_id.relateParticipantId',
+                            totalAmountSent: 1,
+                            totalSentCount: 1,
+                            totalAmountReceived: 1,
+                            totalReceivedCount: 1
+                        }
+                    },	
+                    {
+                        $lookup: {
+                          from: 'participant',
+                          localField: 'paramParticipantId',
+                          foreignField: 'id',
+                          as: 'paramParticipantInfo'
+                        }
+                    },
+                    {
+                        $unwind: '$paramParticipantInfo'
+                    },
+                    {
+                        $lookup: {
+                          from: 'participant',
+                          localField: 'relateParticipantId',
+                          foreignField: 'id',
+                          as: 'relateParticipantInfo'
+                        }
+                    },
+                    {
+                        $unwind: '$relateParticipantInfo'
+                    },
+                    {
+                        $project: {
+                            _id: 0,
+                            matrixId: '$matrixId',
+                            settlementDate: '$settlementDate',
+                            paramParticipantId: '$paramParticipantId',
+                            paramParticipantName: '$paramParticipantInfo.name',
+                            relateParticipantId: '$relateParticipantId',
+                            relateParticipantName: '$relateParticipantInfo.name',
+                            totalAmountSent: 1,
+                            totalSentCount: 1,
+                            totalAmountReceived: 1,
+                            totalReceivedCount: 1
+                        }
+                    }
+                ]).toArray();
+                
+
+            return result;
+        } catch (e: unknown) {
+            this._logger.error(e, `getDFSPSettlement: error getting data for participantId: ${participantId} and matrixId: ${matrixId} - ${e}`);
             return Promise.reject(e);
         }
     }

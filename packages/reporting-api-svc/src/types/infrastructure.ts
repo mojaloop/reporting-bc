@@ -35,6 +35,7 @@ export interface IReportingRepo {
     init(): Promise<void>;
     getSettlementInitiationByMatrixId(matrixId: string): Promise<any>;
     getDFSPSettlementDetail(participantId: string, matrixId: string): Promise<any>;
+    getDFSPSettlement(participantId: string, matrixId: string): Promise<any>;
     getSettlementMatricesByDfspNameAndFromDateToDate(participantId: string, startDate: number, endDate: number): Promise<any>;
 	destroy(): Promise<void>;
 }

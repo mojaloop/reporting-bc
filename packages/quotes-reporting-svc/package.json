@@ -38,6 +38,7 @@
         "dep:update": "ncu -u"
     },
     "dependencies": {
+        "@mojaloop/reporting-bc-types-lib": "*",
         "@mojaloop/logging-bc-client-lib": "~0.1.26",
         "@mojaloop/logging-bc-public-types-lib": "~0.1.19",
         "@mojaloop/participants-bc-client-lib": "~0.1.14",

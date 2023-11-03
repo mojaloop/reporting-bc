@@ -215,7 +215,7 @@ export class Service {
 
             this.expressServer = this.app.listen(portNum, () => {
                 this.logger.info(`🚀 Server ready at port: ${portNum}`);
-                this.logger.info(`Transfers Reporting service v: ${APP_VERSION} started`);
+                this.logger.info(`Reporting API service v: ${APP_VERSION} started`);
                 resolve();
             });
         });
