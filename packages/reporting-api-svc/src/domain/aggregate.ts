@@ -195,6 +195,18 @@ export class ReportingAggregate {
         return result;
     }
 
+    async getDFSPSettlement(secCtx: CallSecurityContext, participantId: string, matrixId: string): Promise<any> {
+        // this._enforcePrivilege(secCtx, ParticipantPrivilegeNames.VIEW_PARTICIPANT);
+
+        const result = await this._reportingRepo.getDFSPSettlement(participantId,matrixId);
+        if (result == null)
+            throw new Error(
+                `DFSP Settlement with participantId: ${participantId} and matrixId: ${matrixId} not found.`
+            );
+
+        return result;
+    }
+
     async getSettlementMatricesByDfspNameAndFromDateToDate(secCtx: CallSecurityContext, participantId: string, startDate: number, endDate: number): Promise<any> {
         // this._enforcePrivilege(secCtx, ParticipantPrivilegeNames.VIEW_PARTICIPANT);
 
