@@ -19,8 +19,6 @@
     "/dist"
   ],
   "scripts": {
-    "start": "npm run service",
-    "service": "tsc && node dist/index.js --config ../../.env",
     "build": "tsc",
     "watch": "tsc -w",
     "clean": "npm run clean:npm; npm run clean:dist",
@@ -28,12 +26,9 @@
     "clean:npm": "rm -rf node_modules",
     "pretest": "npm run build",
     "standard": "npm run lint",
-    "lint": "eslint ./src",
-    "lint:fix": "eslint ./src --fix",
-    "test:unit": "jest --passWithNoTests --testMatch '**/test/unit/**/*.test.ts'",
-    "test:coverage": "jest --passWithNoTests --coverage --coverageThreshold='{}' --testMatch '**/test/unit/**/*.test.ts'",
-    "test:coverage-check": "jest --coverage --testMatch '**/test/unit/**/*.test.ts'",
-    "audit:check": "npm npm audit",
+    "lint": "npm run build && npx eslint ./src",
+    "lint:fix": "npm run build && npx eslint ./src --fix",
+    "test:unit": "jest --passWithNoTests",
     "dep:check": "ncu -e 2",
     "dep:update": "ncu -u"
   },

@@ -52,6 +52,12 @@
         "typescript": "^4.9.5"
     },
     "workspaces": [
+        "packages/reporting-types-lib",
+        "packages/participants-reporting-svc",
+        "packages/quotes-reporting-svc",
+        "packages/transfers-reporting-svc",
+        "packages/settlements-reporting-svc",
+        "packages/commreporting-api-svc",
         "packages/*"
     ],
     "engines": {

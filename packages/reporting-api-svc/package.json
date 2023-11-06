@@ -1,12 +1,12 @@
 {
     "name": "@mojaloop/reporting-bc-reporting-api-svc",
-    "version": "0.0.1",
+    "version": "0.3.0",
     "description": "mojaloop reporting api service",
     "license": "Apache-2.0",
     "homepage": "https://github.com/mojaloop/reporting-bc/",
-    "private": true,
+    "private": false,
     "mojaloop": {
-        "publish_to_dockerhub": false
+        "publish_to_dockerhub": true
     },
     "bugs": {
         "url": "https://github.com/mojaloop/reporting-bc/issues#readme"
@@ -26,13 +26,13 @@
         "build": "tsc",
         "watch": "tsc -w",
         "clean": "npm run clean:npm; npm run clean:dist",
-        "clean:dist": "rm -Rf dist",
-        "clean:npm": "rm -Rf node_modules",
+        "clean:dist": "rm -rf dist",
+        "clean:npm": "rm -rf node_modules",
         "pretest": "npm run build",
         "standard": "npm run lint",
         "lint": "npm run build && npx eslint ./src",
         "lint:fix": "npm run build && npx eslint ./src --fix",
-        "test:unit": "jest --passWithNoTests --testMatch '**/test/unit/**/*.test.ts'",
+        "test:unit": "jest --passWithNoTests",
         "dep:check": "ncu -e 2",
         "dep:update": "ncu -u"
     },
@@ -48,7 +48,8 @@
         "@mojaloop/security-bc-public-types-lib": "~0.3.3",
         "exceljs": "^4.4.0",
         "express": "^4.18.2",
-        "express-validator": "^7.0.1"
+        "express-validator": "^7.0.1",
+        "mongodb": "~5.5.0"
     },
     "devDependencies": {
         "@mojaloop/logging-bc-public-types-lib": "^0.1.14",
