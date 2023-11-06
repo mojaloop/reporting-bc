@@ -1,12 +1,12 @@
 {
     "name": "@mojaloop/reporting-bc-transfers-reporting-svc",
-    "version": "0.0.1",
+    "version": "0.3.0",
     "description": "mojaloop transfers reporting service",
     "license": "Apache-2.0",
     "homepage": "https://github.com/mojaloop/reporting-bc/",
-    "private": true,
+    "private": false,
     "mojaloop": {
-        "publish_to_dockerhub": false
+        "publish_to_dockerhub": true
     },
     "bugs": {
         "url": "https://github.com/mojaloop/reporting-bc/issues#readme"

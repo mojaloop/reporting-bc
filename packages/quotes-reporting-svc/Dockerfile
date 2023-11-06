@@ -17,7 +17,9 @@ COPY package*.json ./
 
 # copy any local libraries this service needs
 #COPY packages/public-types-lib/package.json ./packages/public-types-lib/
-COPY packages/example-svc/package.json ./packages/example-svc/
+COPY packages/reporting-types-lib/package.json ./packages/reporting-types-lib/
+COPY packages/quotes-reporting-svc/package.json ./packages/quotes-reporting-svc/
+
 
 #RUN ls -la
 
@@ -36,10 +38,10 @@ RUN BUILD_LIBRDKAFKA=0 npm install
 COPY tsconfig.json ./
 
 # copy required supporting modules/packages (only the private ones not published to npm)
-#COPY packages/public-types-lib ./packages/public-types-lib
+COPY packages/reporting-types-lib ./packages/reporting-types-lib
 
 # copy service code
-COPY packages/example-svc ./packages/example-svc
+COPY packages/quotes-reporting-svc ./packages/quotes-reporting-svc
 
 # build
 RUN npm run build
@@ -54,6 +56,6 @@ RUN apk add librdkafka
 COPY --from=builder /app .
 
 # expose correct service oprt
-EXPOSE 5001
+EXPOSE 5003
 
-CMD [ "npm", "run", "start:participants-reporting-svc" ]
+CMD [ "npm", "run", "start:quotes-reporting-svc" ]

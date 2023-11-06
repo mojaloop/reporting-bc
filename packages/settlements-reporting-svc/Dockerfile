@@ -17,7 +17,9 @@ COPY package*.json ./
 
 # copy any local libraries this service needs
 #COPY packages/public-types-lib/package.json ./packages/public-types-lib/
-COPY packages/example-svc/package.json ./packages/example-svc/
+COPY packages/reporting-types-lib/package.json ./packages/reporting-types-lib/
+COPY packages/settlements-reporting-svc/package.json ./packages/settlements-reporting-svc/
+
 
 #RUN ls -la
 
@@ -36,10 +38,10 @@ RUN BUILD_LIBRDKAFKA=0 npm install
 COPY tsconfig.json ./
 
 # copy required supporting modules/packages (only the private ones not published to npm)
-#COPY packages/public-types-lib ./packages/public-types-lib
+COPY packages/reporting-types-lib ./packages/reporting-types-lib
 
 # copy service code
-COPY packages/example-svc ./packages/example-svc
+COPY packages/settlements-reporting-svc ./packages/settlements-reporting-svc
 
 # build
 RUN npm run build
