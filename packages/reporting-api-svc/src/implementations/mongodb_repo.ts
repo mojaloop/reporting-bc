@@ -101,7 +101,7 @@ export class MongoReportingRepo implements IReportingRepo {
                         $project: {
                             _id: 0,
                             matrixId: '$id',
-                            participantDescription: '$participantInfo.description',
+                            participantId: '$participantInfo.id',
                             externalBankAccountId: {
                                 $arrayElemAt: [
                                     {
@@ -231,7 +231,7 @@ export class MongoReportingRepo implements IReportingRepo {
                             'payerIdType': '$quote.payer.partyIdInfo.partyIdType',
                             'payerIdentifier': '$quote.payer.partyIdInfo.partyIdentifier',
                             'payeeIdType': '$quote.payee.partyIdInfo.partyIdType',
-                            'payeeIdentifier': '$quote.payee.partyIdentifier',
+                            'payeeIdentifier': '$quote.payee.partyIdInfo.partyIdentifier',
                             'Amount': '$amount',
                             'Currency': '$currencyCode'
                         }
@@ -359,6 +359,7 @@ export class MongoReportingRepo implements IReportingRepo {
                             settlementDate: '$_id.settlementDate',
                             paramParticipantId: '$_id.paramParticipantId',
                             relateParticipantId: '$_id.relateParticipantId',
+                            currency: '$_id.currency',
                             totalAmountSent: 1,
                             totalSentCount: 1,
                             totalAmountReceived: 1,
@@ -396,6 +397,7 @@ export class MongoReportingRepo implements IReportingRepo {
                             paramParticipantName: '$paramParticipantInfo.name',
                             relateParticipantId: '$relateParticipantId',
                             relateParticipantName: '$relateParticipantInfo.name',
+                            currency: '$currency',
                             totalAmountSent: 1,
                             totalSentCount: 1,
                             totalAmountReceived: 1,
