@@ -79,7 +79,7 @@ export class ReportingAggregate {
 
 
         const result = await this._reportingRepo.getSettlementInitiationByMatrixId(id);
-        if (result == null)
+        if (result === null || (Array.isArray(result) && result.length === 0))
             throw new Error(
                 `Settlement matrix with ID: '${id}' not found.`
             );
@@ -93,7 +93,7 @@ export class ReportingAggregate {
         this._logger.info(`Get settlementInitiationbyMatrixIdExport`);
         
         const result = await this._reportingRepo.getSettlementInitiationByMatrixId(id);
-        if (result == null)
+        if (result === null || (Array.isArray(result) && result.length === 0))
             throw new Error(
                 `Settlement matrix with ID: '${id}' not found.`
             );
@@ -162,9 +162,9 @@ export class ReportingAggregate {
         addBordersToRow(details);
 
         // Populate the detail table with data
-        data.forEach((dataRow: { matrixId: any; settlementCreatedDate: string | number | Date; participantDescription: any; externalBankAccountName: any; externalBankAccountId: any; participantDebitBalance: any; participantCreditBalance: any; participantCurrencyCode: any; }) => {
+        data.forEach((dataRow: { matrixId: string; settlementCreatedDate: string | number | Date; participantId: string; externalBankAccountName: string; externalBankAccountId: string; participantDebitBalance: any; participantCreditBalance: any; participantCurrencyCode: string; }) => {
             const row = settlementInitiation.addRow([
-                dataRow.participantDescription,
+                dataRow.participantId,
                 dataRow.externalBankAccountName + ' ' + dataRow.externalBankAccountId,
                 '', // Default empty Balance
                 '',
