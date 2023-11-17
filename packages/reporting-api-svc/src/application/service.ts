@@ -46,11 +46,12 @@ import {
     LocalAuditClientCryptoProvider
 } from "@mojaloop/auditing-bc-client-lib";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
-import { AuthorizationClient, TokenHelper } from "@mojaloop/security-bc-client-lib";
+import {AuthenticatedHttpRequester, AuthorizationClient, TokenHelper} from "@mojaloop/security-bc-client-lib";
 import { ExpressRoutes } from "./routes/routes";
 import { ReportingPrivilegesDefinition } from "./privileges";
 import { ReportingAggregate } from "../domain/aggregate";
 import { existsSync } from "fs";
+import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -71,6 +72,7 @@ const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
 
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
+const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
 const AUTH_N_TOKEN_ISSUER_NAME = process.env["AUTH_N_TOKEN_ISSUER_NAME"] || "mojaloop.vnext.dev.default_issuer";
 const AUTH_N_TOKEN_AUDIENCE = process.env["AUTH_N_TOKEN_AUDIENCE"] || "mojaloop.vnext.dev.default_audience";
 
@@ -82,12 +84,16 @@ const AUTH_Z_SVC_BASEURL = process.env["AUTH_Z_SVC_BASEURL"] || "http://localhos
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "reporting-bc-reporting-api-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
-const SVC_DEFAULT_HTTP_PORT = 5005;
+const SVC_DEFAULT_HTTP_PORT = 5000;
 
 const SERVICE_START_TIMEOUT_MS = 60_000;
 
 const kafkaProducerOptions = {
     kafkaBrokerList: KAFKA_URL
+};
+const kafkaConsumerOptions: MLKafkaJsonConsumerOptions = {
+    kafkaBrokerList: KAFKA_URL,
+    kafkaGroupId: `${BC_NAME}_${APP_NAME}_authz_client`
 };
 
 let globalLogger: ILogger;
@@ -128,7 +134,7 @@ export class Service {
             await (logger as KafkaLogger).init();
         }
         globalLogger = this.logger = logger;
-      
+
         // start auditClient
         if (!auditClient) {
             if (!existsSync(AUDIT_KEY_FILE_PATH)) {
@@ -148,11 +154,25 @@ export class Service {
 
         // authorization client
         if (!authorizationClient) {
+            // create the instance of IAuthenticatedHttpRequester
+            const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+            authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+
+            const consumerHandlerLogger = logger.createChild("authorizationClientConsumer");
+            const messageConsumer = new MLKafkaJsonConsumer(kafkaConsumerOptions, consumerHandlerLogger);
+
             // setup privileges - bootstrap app privs and get priv/role associations
-            authorizationClient = new AuthorizationClient(BC_NAME, APP_NAME, APP_VERSION, AUTH_Z_SVC_BASEURL, logger);
+            authorizationClient = new AuthorizationClient(
+                BC_NAME, APP_NAME, APP_VERSION,
+                AUTH_Z_SVC_BASEURL, logger.createChild("AuthorizationClient"),
+                authRequester,
+                messageConsumer
+            );
             authorizationClient.addPrivilegesArray(ReportingPrivilegesDefinition);
             await (authorizationClient as AuthorizationClient).bootstrap(true);
             await (authorizationClient as AuthorizationClient).fetch();
+            // init message consumer to automatically update on role changed events
+            await (authorizationClient as AuthorizationClient).init();
         }
         this.authorizationClient = authorizationClient;
 
@@ -175,9 +195,9 @@ export class Service {
         // Initialize the repo
         await this.reportingRepo.init();
 		this.logger.info("Reporting API Repository Initialized");
-        
+
         this.aggregate = new ReportingAggregate(this.logger, this.auditClient, this.authorizationClient, this.reportingRepo);
-        
+
         await this.setupExpress();
 
         // remove startup timeout

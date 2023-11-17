@@ -30,19 +30,8 @@
 
 "use strict";
 
-import { TransferState } from "./enums";
-
 // NOTE: these types should be optimized for the reporting needs and should never reference the internal types (can obviously be similar if that is of interest)
 
-
-export interface IExtensionList {
-    extension: { key: string; value: string;}[];
-}
-
-export interface IErrorInformation {
-    errorCode: string;
-    errorDescription: string;
-}
 
 export interface IDailyTransferStats {
     //day is the identifier - format 2023-12-27 (use ISO format)
@@ -67,11 +56,21 @@ export interface ITransferReport {
 	amount: string;
 	currencyCode: string;
 	expirationTimestamp: number;
-	transferState: TransferState;
+	transferState: "RECEIVED" 		// initial state
+        | "RESERVED"         		// after prepare
+        | "REJECTED"                // could not prepare (ex: no liquidity)
+        | "COMMITTED"               // after fulfil (final state of successful transfer)
+        | "ABORTED"                 // this should not be called like this
+        | "EXPIRED";
 	completedTimestamp: number | null;
 
-    extensionList: IExtensionList | null;
-    errorInformation: IErrorInformation | null;
+    extensionList: {
+        extension: { key: string; value: string; }[];
+    } | null;
+    errorInformation: {
+        errorCode: string;
+        errorDescription: string;
+    } | null;
 
 	// populated from the settlements lib during prepare
 	settlementModel: string | "DEFAULT";

@@ -43,8 +43,8 @@ import {
     MakerCheckerViolationError,
     UnauthorizedError,
 } from "@mojaloop/security-bc-public-types-lib";
-import { Row, Workbook } from 'exceljs';
-import * as fs from 'fs';
+import { Row, Workbook } from "exceljs";
+import * as fs from "fs";
 import { time } from "console";
 
 export class ReportingAggregate {
@@ -74,7 +74,7 @@ export class ReportingAggregate {
     //     );
     // }
 
-    async getSettlementInitiationByMatrixId(secCtx: CallSecurityContext, id: string): Promise<unknown> {
+    async getSettlementInitiationByMatrixId(secCtx: CallSecurityContext, id: string): Promise<any> {
         // this._enforcePrivilege(secCtx, ParticipantPrivilegeNames.VIEW_PARTICIPANT);
 
 
@@ -87,11 +87,11 @@ export class ReportingAggregate {
         return result;
     }
 
-    async getSettlementInitiationByMatrixIdExport(secCtx: CallSecurityContext, id: string): Promise<any> {
+    async getSettlementInitiationByMatrixIdExport(secCtx: CallSecurityContext, id: string): Promise<Buffer> {
         // this._enforcePrivilege(secCtx, ParticipantPrivilegeNames.VIEW_PARTICIPANT);
 
-        this._logger.info(`Get settlementInitiationbyMatrixIdExport`);
-        
+        this._logger.debug("Get settlementInitiationbyMatrixIdExport");
+
         const result = await this._reportingRepo.getSettlementInitiationByMatrixId(id);
         if (result === null || (Array.isArray(result) && result.length === 0))
             throw new Error(
@@ -99,7 +99,7 @@ export class ReportingAggregate {
             );
 
         const workbook = await this.generateExcelFile(result);
-        return workbook;
+        return workbook.xlsx.writeBuffer();
     }
 
     async generateExcelFile(data: any): Promise<any> {
@@ -108,76 +108,76 @@ export class ReportingAggregate {
         function addBordersToRow(row: Row) {
             row.eachCell((cell) => {
                 cell.border = {
-                    top: { style: 'thin' },
-                    right: { style: 'thin' },
-                    bottom: { style: 'thin' },
-                    left: { style: 'thin' },
+                    top: { style: "thin" },
+                    right: { style: "thin" },
+                    bottom: { style: "thin" },
+                    left: { style: "thin" },
                 };
-                if (cell.value === 'Settlement ID' ||
-                    cell.value === 'Settlement Created Date' ||
-                    cell.value === 'TimeZoneOffset' ||
-                    cell.value === 'Participant' ||
-                    cell.value === 'Participant(Bank Identifier)' ||
-                    cell.value === 'Balance' ||
-                    cell.value === 'Settlement Transfer' ||
-                    cell.value === 'Currency') {
+                if (cell.value === "Settlement ID" ||
+                    cell.value === "Settlement Created Date" ||
+                    cell.value === "TimeZoneOffset" ||
+                    cell.value === "Participant" ||
+                    cell.value === "Participant(Bank Identifier)" ||
+                    cell.value === "Balance" ||
+                    cell.value === "Settlement Transfer" ||
+                    cell.value === "Currency") {
                     cell.font = { bold: true };
                 }
-                cell.alignment = { vertical: 'middle' }; 
+                cell.alignment = { vertical: "middle" };
             });
         }
 
-        const workbook = new Workbook()
-        const settlementInitiation = workbook.addWorksheet('SettlementInitiation');
+        const workbook = new Workbook();
+        const settlementInitiation = workbook.addWorksheet("SettlementInitiation");
 
         const date = new Date(data[0].settlementCreatedDate);
 
         const options: Intl.DateTimeFormatOptions = {
-            year: 'numeric',
-            month: 'short',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
             hour12: true, // Use 12-hour format
         };
 
-        const formatter = new Intl.DateTimeFormat('en-US', options);
+        const formatter = new Intl.DateTimeFormat("en-US", options);
         const formattedDate = formatter.format(date);
         // Split the formatted date string
-        const [month, day, year, time] = formattedDate.replaceAll(',','').split(' ');
+        const [month, day, year, time] = formattedDate.replaceAll(",","").split(" ");
         // Reconstruct the date in the desired format
         const finalFormattedDate = `${day}-${month}-${year} ${time}`;
 
-        const settlementId = settlementInitiation.addRow(['Settlement ID', data[0].matrixId]);
+        const settlementId = settlementInitiation.addRow(["Settlement ID", data[0].matrixId]);
         addBordersToRow(settlementId);
-        const settlementDate = settlementInitiation.addRow(['Settlement Created Date', finalFormattedDate]);
+        const settlementDate = settlementInitiation.addRow(["Settlement Created Date", finalFormattedDate]);
         addBordersToRow(settlementDate);
-        const timeZoneOffset = settlementInitiation.addRow(['TimeZoneOffset', "UTC±00:00"]);
+        const timeZoneOffset = settlementInitiation.addRow(["TimeZoneOffset", "UTC±00:00"]);
         addBordersToRow(timeZoneOffset);
         // Put empty row
-        settlementInitiation.addRow(['', '']);
+        settlementInitiation.addRow(["", ""]);
         // Define the detail table fields
-        const details = settlementInitiation.addRow(['Participant', 'Participant(Bank Identifier)', 'Balance', 'Settlement Transfer', 'Currency']);
+        const details = settlementInitiation.addRow(["Participant", "Participant(Bank Identifier)", "Balance", "Settlement Transfer", "Currency"]);
         addBordersToRow(details);
 
         // Populate the detail table with data
         data.forEach((dataRow: { matrixId: string; settlementCreatedDate: string | number | Date; participantId: string; externalBankAccountName: string; externalBankAccountId: string; participantDebitBalance: any; participantCreditBalance: any; participantCurrencyCode: string; }) => {
             const row = settlementInitiation.addRow([
                 dataRow.participantId,
-                dataRow.externalBankAccountName + ' ' + dataRow.externalBankAccountId,
-                '', // Default empty Balance
-                '',
+                dataRow.externalBankAccountName + " " + dataRow.externalBankAccountId,
+                "", // Default empty Balance
+                "",
                 dataRow.participantCurrencyCode,
             ]);
 
             const balanceCell = row.getCell(4); // Get the specific cell you want to format (index starts from 1)
 
-            balanceCell.value = (dataRow.participantCreditBalance - dataRow.participantDebitBalance).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-            balanceCell.alignment = { horizontal: 'right' }; // Apply alignment to the cell
+            balanceCell.value = (dataRow.participantCreditBalance - dataRow.participantDebitBalance).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+            balanceCell.alignment = { horizontal: "right" }; // Apply alignment to the cell
 
             addBordersToRow(row);
-            balanceCell.alignment = { vertical:'middle',horizontal:'right' };
+            balanceCell.alignment = { vertical:"middle",horizontal:"right" };
         });
 
         return workbook;

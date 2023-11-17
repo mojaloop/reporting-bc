@@ -30,12 +30,12 @@
 
 "use strict";
 
-import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
-import { Collection, MongoClient } from 'mongodb';
+import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
+import { Collection, MongoClient } from "mongodb";
 import {
     UnableToCloseDatabaseConnectionError,
 } from "./errors";
-import { IReportingRepo } from '../types';
+import { IReportingRepo } from "../types";
 
 
 export class MongoReportingRepo implements IReportingRepo {
@@ -84,24 +84,24 @@ export class MongoReportingRepo implements IReportingRepo {
                         },
                     },
                     {
-                        $unwind: '$balancesByParticipant',
+                        $unwind: "$balancesByParticipant",
                     },
                     {
                         $lookup: {
-                            from: 'participant',
-                            localField: 'balancesByParticipant.participantId',
-                            foreignField: 'id',
-                            as: 'participantInfo',
+                            from: "participant",
+                            localField: "balancesByParticipant.participantId",
+                            foreignField: "id",
+                            as: "participantInfo",
                         },
                     },
                     {
-                        $unwind: '$participantInfo',
+                        $unwind: "$participantInfo",
                     },
                     {
                         $project: {
                             _id: 0,
-                            matrixId: '$id',
-                            participantId: '$participantInfo.id',
+                            matrixId: "$id",
+                            participantId: "$participantInfo.id",
                             externalBankAccountId: {
                                 $arrayElemAt: [
                                     {
@@ -138,10 +138,10 @@ export class MongoReportingRepo implements IReportingRepo {
                                     0
                                 ]
                             },
-                            participantCurrencyCode: '$balancesByParticipant.currencyCode',
-                            participantDebitBalance: '$balancesByParticipant.debitBalance',
-                            participantCreditBalance: '$balancesByParticipant.creditBalance',
-                            settlementCreatedDate: '$createdAt',
+                            participantCurrencyCode: "$balancesByParticipant.currencyCode",
+                            participantDebitBalance: "$balancesByParticipant.debitBalance",
+                            participantCreditBalance: "$balancesByParticipant.creditBalance",
+                            settlementCreatedDate: "$createdAt",
                         },
                     }
                 ]).toArray();
@@ -166,74 +166,74 @@ export class MongoReportingRepo implements IReportingRepo {
                     },
                     {
                         $lookup: {
-                            from: 'matrices',
-                            localField: 'matrixId',
-                            foreignField: 'id',
-                            as: 'matrices'
+                            from: "matrices",
+                            localField: "matrixId",
+                            foreignField: "id",
+                            as: "matrices"
                         }
                     },
                     {
-                        $unwind: '$matrices'
+                        $unwind: "$matrices"
                     },
                     {
                         $lookup: {
-                            from: 'participant',
-                            localField: 'payerFspId',
-                            foreignField: 'id',
-                            as: 'payerParticipant'
+                            from: "participant",
+                            localField: "payerFspId",
+                            foreignField: "id",
+                            as: "payerParticipant"
                         }
                     },
                     {
-                        $unwind: '$payerParticipant'
+                        $unwind: "$payerParticipant"
                     },
                     {
                         $lookup: {
-                            from: 'participant',
-                            localField: 'payeeFspId',
-                            foreignField: 'id',
-                            as: 'payeeParticipant'
+                            from: "participant",
+                            localField: "payeeFspId",
+                            foreignField: "id",
+                            as: "payeeParticipant"
                         }
                     },
                     {
-                        $unwind: '$payeeParticipant'
+                        $unwind: "$payeeParticipant"
                     },
                     {
                         $lookup: {
-                            from: 'quote',
-                            localField: 'transferId',
-                            foreignField: 'transactionId',
-                            as: 'quote'
+                            from: "quote",
+                            localField: "transferId",
+                            foreignField: "transactionId",
+                            as: "quote"
                         }
                     },
                     {
-                        $unwind: '$quote'
+                        $unwind: "$quote"
                     },
                     {
                         $match: {
                             $or: [
-                                { 'payerFspId': participantId },
-                                { 'payeeFspId': participantId }
+                                { "payerFspId": participantId },
+                                { "payeeFspId": participantId }
                             ]
                         }
                     },
                     {
                         $project: {
-                            '_id': 0,
-                            'matrixId': '$matrixId',
-                            'settlementDate': '$matrices.createdAt',
-                            'payerFspId': '$payerFspId',
-                            'payerParticipantName': '$payerParticipant.name',
-                            'payeeFspId': '$payeeFspId',
-                            'payeeParticipantName': '$payeeParticipant.name',
-                            'transferId': '$transferId',
-                            'transactionType': '$quote.transactionType.scenario',
-                            'transactionDate': '$completedTimestamp',
-                            'payerIdType': '$quote.payer.partyIdInfo.partyIdType',
-                            'payerIdentifier': '$quote.payer.partyIdInfo.partyIdentifier',
-                            'payeeIdType': '$quote.payee.partyIdInfo.partyIdType',
-                            'payeeIdentifier': '$quote.payee.partyIdInfo.partyIdentifier',
-                            'Amount': '$amount',
-                            'Currency': '$currencyCode'
+                            "_id": 0,
+                            "matrixId": "$matrixId",
+                            "settlementDate": "$matrices.createdAt",
+                            "payerFspId": "$payerFspId",
+                            "payerParticipantName": "$payerParticipant.name",
+                            "payeeFspId": "$payeeFspId",
+                            "payeeParticipantName": "$payeeParticipant.name",
+                            "transferId": "$transferId",
+                            "transactionType": "$quote.transactionType.scenario",
+                            "transactionDate": "$completedTimestamp",
+                            "payerIdType": "$quote.payer.partyIdInfo.partyIdType",
+                            "payerIdentifier": "$quote.payer.partyIdInfo.partyIdentifier",
+                            "payeeIdType": "$quote.payee.partyIdInfo.partyIdType",
+                            "payeeIdentifier": "$quote.payee.partyIdInfo.partyIdentifier",
+                            "Amount": "$amount",
+                            "Currency": "$currencyCode"
                         }
                     }
                 ]).toArray();
@@ -258,61 +258,61 @@ export class MongoReportingRepo implements IReportingRepo {
                     },
                     {
                         $lookup: {
-                            from: 'matrices',
-                            localField: 'matrixId',
-                            foreignField: 'id',
-                            as: 'matrices'
+                            from: "matrices",
+                            localField: "matrixId",
+                            foreignField: "id",
+                            as: "matrices"
                         }
                     },
                     {
-                        $unwind: '$matrices'
+                        $unwind: "$matrices"
                     },
                     {
                         $match: {
                             $or: [
-                                { 'payerFspId': participantId },
-                                { 'payeeFspId': participantId }
+                                { "payerFspId": participantId },
+                                { "payeeFspId": participantId }
                             ]
                         }
                     },
                     {
                         $project: {
-                            '_id': 0,
-                            'matrixId': '$matrixId',
-                            'settlementDate': '$matrices.createdAt',
-                            'paramParticipantId': participantId,
-                            'relateParticipantId': {
+                            "_id": 0,
+                            "matrixId": "$matrixId",
+                            "settlementDate": "$matrices.createdAt",
+                            "paramParticipantId": participantId,
+                            "relateParticipantId": {
                                                     $cond: [
-                                                            { $eq: ['$payerFspId', participantId] },
-                                                            '$payeeFspId',
-                                                            '$payerFspId'
+                                                            { $eq: ["$payerFspId", participantId] },
+                                                            "$payeeFspId",
+                                                            "$payerFspId"
                                                         ]
                                                 },
-                            'direction': {
+                            "direction": {
                                             $cond: [
-                                                    { $eq: ['$payerFspId', participantId] },
-                                                    'sent',
-                                                    'recieved'
+                                                    { $eq: ["$payerFspId", participantId] },
+                                                    "sent",
+                                                    "recieved"
                                                 ]
                                         },
-                            'amount': { $toDouble: '$amount' },
-                            'currency': '$currencyCode'
+                            "amount": { $toDouble: "$amount" },
+                            "currency": "$currencyCode"
                         }
                     },
                     {
                         $group: {
                              _id: {
-                                paramParticipantId: '$paramParticipantId',
-                                relateParticipantId: '$relateParticipantId',
-                                currency: '$currency',
-                                matrixId: '$matrixId',
-                                settlementDate: '$settlementDate'
+                                paramParticipantId: "$paramParticipantId",
+                                relateParticipantId: "$relateParticipantId",
+                                currency: "$currency",
+                                matrixId: "$matrixId",
+                                settlementDate: "$settlementDate"
                             },
                             totalAmountSent: {
                                 $sum: {
                                     $cond: [
-                                        { $eq: ['$direction', 'sent'] },
-                                        '$amount',
+                                        { $eq: ["$direction", "sent"] },
+                                        "$amount",
                                         0
                                     ]
                                 }
@@ -320,7 +320,7 @@ export class MongoReportingRepo implements IReportingRepo {
                             totalSentCount: {
                                 $sum: {
                                     $cond: [
-                                        { $eq: ['$direction', 'sent'] },
+                                        { $eq: ["$direction", "sent"] },
                                         1,
                                         0
                                     ]
@@ -329,8 +329,8 @@ export class MongoReportingRepo implements IReportingRepo {
                             totalAmountReceived: {
                                 $sum: {
                                     $cond: [
-                                        { $eq: ['$direction', 'recieved'] },
-                                        '$amount',
+                                        { $eq: ["$direction", "recieved"] },
+                                        "$amount",
                                         0
                                     ]
                                 }
@@ -338,7 +338,7 @@ export class MongoReportingRepo implements IReportingRepo {
                             totalReceivedCount: {
                                 $sum: {
                                     $cond: [
-                                        { $eq: ['$direction', 'recieved'] },
+                                        { $eq: ["$direction", "recieved"] },
                                         1,
                                         0
                                     ]
@@ -348,18 +348,18 @@ export class MongoReportingRepo implements IReportingRepo {
                     },
                     {
                         $sort: {
-                            '_id.relateParticipantId': 1,
-                            '_id.currency': 1
+                            "_id.relateParticipantId": 1,
+                            "_id.currency": 1
                         }
                     },
                     {
                         $project: {
                             _id: 0,
-                            matrixId: '$_id.matrixId',
-                            settlementDate: '$_id.settlementDate',
-                            paramParticipantId: '$_id.paramParticipantId',
-                            relateParticipantId: '$_id.relateParticipantId',
-                            currency: '$_id.currency',
+                            matrixId: "$_id.matrixId",
+                            settlementDate: "$_id.settlementDate",
+                            paramParticipantId: "$_id.paramParticipantId",
+                            relateParticipantId: "$_id.relateParticipantId",
+                            currency: "$_id.currency",
                             totalAmountSent: 1,
                             totalSentCount: 1,
                             totalAmountReceived: 1,
@@ -368,36 +368,36 @@ export class MongoReportingRepo implements IReportingRepo {
                     },	
                     {
                         $lookup: {
-                          from: 'participant',
-                          localField: 'paramParticipantId',
-                          foreignField: 'id',
-                          as: 'paramParticipantInfo'
+                          from: "participant",
+                          localField: "paramParticipantId",
+                          foreignField: "id",
+                          as: "paramParticipantInfo"
                         }
                     },
                     {
-                        $unwind: '$paramParticipantInfo'
+                        $unwind: "$paramParticipantInfo"
                     },
                     {
                         $lookup: {
-                          from: 'participant',
-                          localField: 'relateParticipantId',
-                          foreignField: 'id',
-                          as: 'relateParticipantInfo'
+                          from: "participant",
+                          localField: "relateParticipantId",
+                          foreignField: "id",
+                          as: "relateParticipantInfo"
                         }
                     },
                     {
-                        $unwind: '$relateParticipantInfo'
+                        $unwind: "$relateParticipantInfo"
                     },
                     {
                         $project: {
                             _id: 0,
-                            matrixId: '$matrixId',
-                            settlementDate: '$settlementDate',
-                            paramParticipantId: '$paramParticipantId',
-                            paramParticipantName: '$paramParticipantInfo.name',
-                            relateParticipantId: '$relateParticipantId',
-                            relateParticipantName: '$relateParticipantInfo.name',
-                            currency: '$currency',
+                            matrixId: "$matrixId",
+                            settlementDate: "$settlementDate",
+                            paramParticipantId: "$paramParticipantId",
+                            paramParticipantName: "$paramParticipantInfo.name",
+                            relateParticipantId: "$relateParticipantId",
+                            relateParticipantName: "$relateParticipantInfo.name",
+                            currency: "$currency",
                             totalAmountSent: 1,
                             totalSentCount: 1,
                             totalAmountReceived: 1,
@@ -416,7 +416,7 @@ export class MongoReportingRepo implements IReportingRepo {
 
     async getSettlementMatricesByDfspNameAndFromDateToDate(participantId: string, startDate: number, endDate: number): Promise<any> {
         try {
-            this._logger.info(`Get getSettlementMatricesByDfspNameAndFromDateToDate`);
+            this._logger.info("Get getSettlementMatricesByDfspNameAndFromDateToDate");
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const filter: any = { $and: [] };
             if (participantId) {

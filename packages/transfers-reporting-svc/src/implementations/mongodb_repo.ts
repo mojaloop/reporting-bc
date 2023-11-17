@@ -34,8 +34,8 @@ import {
     IDailyTransferStats, 
     ITransferReport
 } from "@mojaloop/reporting-bc-types-lib";
-import { ILogger } from '@mojaloop/logging-bc-public-types-lib';
-import { Collection, Document, MongoClient, WithId } from 'mongodb';
+import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
+import { Collection, Document, MongoClient, WithId } from "mongodb";
 import { 
     UnableToInitTransfersReportingRepoError,
     UnableToCloseDatabaseConnectionError,

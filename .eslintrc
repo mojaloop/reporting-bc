@@ -9,7 +9,8 @@
     ],
     "rules": {
         "brace-style": ["error", "1tbs"],
-        "semi": [ "warn" ],
+        "semi": [ "error" ],
+        "quotes": ["error", "double", { "allowTemplateLiterals": false } ],
         "@typescript-eslint/no-inferrable-types": "off",
         "@typescript-eslint/naming-convention": [
             "error",
@@ -24,7 +25,9 @@
                 ],
                 "leadingUnderscore": "require"
             }
-        ]
+        ],
+        "@typescript-eslint/no-unused-vars": ["warn"],
+        "@typescript-eslint/no-explicit-any": ["warn"]
     },
     "parserOptions": {
         "sourceType": "module",

@@ -40,7 +40,7 @@ import { ReportingAggregate } from "../../domain/aggregate";
 
 
 export class ExpressRoutes extends BaseRoutes {
-    
+
     constructor(
         logger: ILogger,
         tokenHelper: TokenHelper,
@@ -53,24 +53,34 @@ export class ExpressRoutes extends BaseRoutes {
         // endpoints
         this.mainRouter.get("/settlementMatrixIds", this.getSettlementMatrixIds.bind(this));
 
+        // pass ?format=excel to receive excel instead of JSON
         this.mainRouter.get("/settlementInitiationByMatrixId/:id", this.getSettlementInitiationByMatrixId.bind(this));
-        
-        this.mainRouter.get("/settlementInitiationByMatrixIdExport/:id", this.getSettlementInitiationByMatrixIdExport.bind(this));
-        
+
         this.mainRouter.get("/dfspSettlementDetail", this.getDFSPSettlementDetail.bind(this));
         this.mainRouter.get("/dfspSettlement", this.getDFSPSettlement.bind(this));
     }
 
     private async getSettlementInitiationByMatrixId(req: express.Request, res: express.Response): Promise<void> {
         const id = req.params["id"] ?? null;
+        const excelFormat = req.query.format && (req.query.format as string).toUpperCase() === "EXCEL" ? true : false;
         this.logger.debug(`Fetching Settlement Initiation data for MatrixId: [${id}].`);
 
         try {
-            const fetched = await this.aggregate.getSettlementInitiationByMatrixId(
-                req.securityContext!,
-                id
-            );
-            res.send(fetched);
+            if(excelFormat){
+                const fetchedBuffer = await this.aggregate.getSettlementInitiationByMatrixIdExport(
+                    req.securityContext!,
+                    id
+                );
+                res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                res.setHeader("Content-Disposition", "attachment; filename=settlementInitiation.xlsx");
+                res.status(200).send(fetchedBuffer);
+            }else {
+                const fetchedJson = await this.aggregate.getSettlementInitiationByMatrixId(
+                    req.securityContext!,
+                    id
+                );
+                res.send(fetchedJson);
+            }
         } catch (err: any) {
             this.logger.error(err);
             res.status(500).json({
@@ -80,37 +90,15 @@ export class ExpressRoutes extends BaseRoutes {
         }
     }
 
-    private async getSettlementInitiationByMatrixIdExport(req: express.Request, res: express.Response): Promise<void> {
-        const id = req.params["id"] ?? null;
-        this.logger.debug(`Fetching Settlement Initiation data for MatrixId: [${id}].`);
-
-        try {
-            const fetched = await this.aggregate.getSettlementInitiationByMatrixIdExport(
-                req.securityContext!,
-                id
-            );
-            const buffer = await fetched.xlsx.writeBuffer();
-            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            res.setHeader('Content-Disposition', 'attachment; filename=settlementInitiation.xlsx');
-            res.status(200).send(buffer);
-        } catch (err: any) {
-            this.logger.error(err);
-            res.status(500).json({
-                status: "error",
-                msg: err.message,
-            });
-        }
-    }
-
-    private async getDFSPSettlementDetail(req: express.Request, res: express.Response): Promise<void> {        
+    private async getDFSPSettlementDetail(req: express.Request, res: express.Response): Promise<void> {
         const participantId = req.query.participantId as string || req.query.participantId as string;
 		const matrixId = req.query.matrixId as string || req.query.matrixid as string;
-        
+
         this.logger.debug(`Fetching DFSP Settlement Detail data for ParticipantId: ${participantId} and MatrixId: ${matrixId}.`);
 
         try {
             if(!participantId || !matrixId){
-                throw new Error('Invalid input parameters.');
+                throw new Error("Invalid input parameters.");
             }
             const fetched = await this.aggregate.getDFSPSettlementDetail(
                 req.securityContext!,
@@ -127,15 +115,15 @@ export class ExpressRoutes extends BaseRoutes {
         }
     }
 
-    private async getDFSPSettlement(req: express.Request, res: express.Response): Promise<void> {        
+    private async getDFSPSettlement(req: express.Request, res: express.Response): Promise<void> {
         const participantId = req.query.participantId as string || req.query.participantId as string;
 		const matrixId = req.query.matrixId as string || req.query.matrixid as string;
-        
+
         this.logger.debug(`Fetching DFSP Settlement data for ParticipantId: ${participantId} and MatrixId: ${matrixId}.`);
 
         try {
             if(!participantId || !matrixId){
-                throw new Error('Invalid input parameters.');
+                throw new Error("Invalid input parameters.");
             }
             const fetched = await this.aggregate.getDFSPSettlement(
                 req.securityContext!,
@@ -159,7 +147,7 @@ export class ExpressRoutes extends BaseRoutes {
             const startDate = startDateStr ? parseInt(startDateStr) : undefined;
             const endDateStr = req.query.endDate as string || req.query.enddate as string;
             const endDate = endDateStr ? parseInt(endDateStr) : undefined;
-            
+
             this.logger.debug("Fetching all matrixIds");
 
             let fetched = [];

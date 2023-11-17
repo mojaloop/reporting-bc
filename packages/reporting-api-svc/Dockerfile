@@ -56,6 +56,6 @@ RUN apk add librdkafka
 COPY --from=builder /app .
 
 # expose correct service oprt
-EXPOSE 5005
+EXPOSE 5000
 
 CMD [ "npm", "run", "start:reporting-api-svc" ]

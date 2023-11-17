@@ -34,13 +34,13 @@
 // Transfer Reports
 export class UnableToGetTransferError extends Error {
     constructor(message?: string) {
-        super(message || 'Unable to get transfer');
+        super(message || "Unable to get transfer");
     }
 }
 
 export class TransferAlreadyExistsError extends Error {
     constructor(message?: string) {
-        super(message || 'Transfer already exists');
+        super(message || "Transfer already exists");
     }
 }
 
@@ -60,12 +60,12 @@ export class UnableToUpdateTransferError extends Error {
 // Database
 export class UnableToCloseDatabaseConnectionError extends Error{
     constructor(message?: string) {
-        super(message || 'Unable to close database connection');
+        super(message || "Unable to close database connection");
     }
 }
 
 export class UnableToInitTransfersReportingRepoError extends Error {
     constructor(message?: string) {
-        super(message || 'Unable to initialize transfers reporting repository');
+        super(message || "Unable to initialize transfers reporting repository");
     }
 }

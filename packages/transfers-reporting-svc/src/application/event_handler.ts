@@ -44,7 +44,7 @@ import { IMessage, IMessageConsumer } from "@mojaloop/platform-shared-lib-messag
 
 import { UnableToGetTransferError } from "../implementations/errors";
 import { ITransfersReportingRepo } from "../types/infrastructure";
-import { ITransferReport, TransferState } from "@mojaloop/reporting-bc-types-lib";
+import { ITransferReport } from "@mojaloop/reporting-bc-types-lib";
 
 
 
@@ -99,7 +99,6 @@ export class TransfersReportingEventHandler {
         const now = Date.now();
         const payload: TransferPreparedEvtPayload = event.payload;
 
-        console.log(TransferState);
         try {
             const transfer: ITransferReport = {
                 createdAt: now,
@@ -110,7 +109,7 @@ export class TransfersReportingEventHandler {
                 amount: payload.amount,
                 currencyCode: payload.currencyCode,
                 expirationTimestamp: payload.expiration,
-                transferState: TransferState.RESERVED,
+                transferState: "RESERVED",
                 completedTimestamp: null,
                 extensionList: null,
                 errorInformation: null,
@@ -143,7 +142,7 @@ export class TransfersReportingEventHandler {
             const updatedTransfer: ITransferReport = {
                 ...existingTransfer,
                 updatedAt: Date.now(),
-                transferState: TransferState.COMMITTED,
+                transferState: "COMMITTED",
                 completedTimestamp: payload.completedTimestamp,
                 extensionList: payload.extensionList,
                 fulfiledAt: payload.fulfiledAt,
@@ -168,7 +167,7 @@ export class TransfersReportingEventHandler {
 
             const updatedTransfer: ITransferReport = {
                 ...existingTransfer,
-                transferState: TransferState.ABORTED,
+                transferState: "ABORTED",
                 errorInformation: payload.errorInformation,
             };
 

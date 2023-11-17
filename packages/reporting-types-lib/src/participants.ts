@@ -29,12 +29,10 @@
 ******/
 "use strict";
 
-import { ParticipantAccountTypes, ParticipantAllowedSourceIpsPortModes, ParticipantChangeTypes, ParticipantEndpointProtocols, ParticipantEndpointTypes, ParticipantFundsMovementDirections, ParticipantNetDebitCapTypes, ParticipantTypes } from "./enums";
-
 export declare interface IParticipantReport {
     id: string;
     name: string;
-    type: ParticipantTypes;
+    type: "HUB" | "DFSP";
     isActive: boolean;
     description: string;
 
@@ -47,126 +45,143 @@ export declare interface IParticipantReport {
 
     lastUpdated: number;
 
-    participantAllowedSourceIps: IParticipantAllowedSourceIp[];
-    participantSourceIpChangeRequests: IParticipantSourceIpChangeRequest[];
+    participantAllowedSourceIps: {
+        id: string;
+        cidr: string;
+        portMode: "ANY" | "SPECIFIC" | "RANGE";
+        ports?: number[];
+        portRange?: {
+            rangeFirst: number;
+            rangeLast: number;
+        };
+    }[];
+    participantSourceIpChangeRequests: {
+        id: string;
+        cidr: string;
+        portMode: "ANY" | "SPECIFIC" | "RANGE";
+        ports?: number[];
+        portRange?: {
+            rangeFirst: number;
+            rangeLast: number;
+        };
+        allowedSourceIpId: string | null;
+        createdBy: string;
+        createdDate: number;
+        approved: boolean;
+        approvedBy: string | null;
+        approvedDate: number | null;
+        requestType: "ADD_SOURCE_IP" | "CHANGE_SOURCE_IP";
+    }[];
 
-    participantEndpoints: IParticipantEndpoint[];
-    participantAccounts: IParticipantAccount[];
-    participantAccountsChangeRequest: IParticipantAccountChangeRequest[];
+    participantEndpoints: {
+        id: string;
+        type: "FSPIOP" | "ISO20022";
+        protocol: "HTTPs/REST";
+        value: string;
+    }[];
+    participantAccounts: {
+        id: string;
+        type: "FEE" | "POSITION" | "SETTLEMENT" | "HUB_MULTILATERAL_SETTLEMENT" | "HUB_RECONCILIATION";
+        currencyCode: string;
+        debitBalance: string | null;
+        creditBalance: string | null;
+        balance: string | null;
+        externalBankAccountId: string | null;
+        externalBankAccountName: string | null;
+    }[];
+    participantAccountsChangeRequest: {
+        id: string;
+        accountId: string | null;
+        type: "FEE" | "POSITION" | "SETTLEMENT" | "HUB_MULTILATERAL_SETTLEMENT" | "HUB_RECONCILIATION";
+        currencyCode: string;
+        externalBankAccountId: string | null;
+        externalBankAccountName: string | null;
+        createdBy: string;
+        createdDate: number;
+        approved: boolean;
+        approvedBy: string | null;
+        approvedDate: number | null;
+        requestType: "ADD_ACCOUNT" | "CHANGE_ACCOUNT_BANK_DETAILS";
+    }[];
 
-    fundsMovements: IParticipantFundsMovement[];
-    changeLog: IParticipantActivityLogEntry[];
+    fundsMovements: {
+        id: string;
+        createdBy: string;
+        createdDate: number;
+        approved: boolean;
+        approvedBy: string | null;
+        approvedDate: number | null;
+        direction:  "FUNDS_DEPOSIT" | "FUNDS_WITHDRAWAL";
+        currencyCode: string;
+        amount: string;
+        transferId: string | null;
+        extReference: string | null;
+        note: string | null;
+    }[];
+    changeLog: {
+        changeType: "CREATE"|"APPROVE"|"ACTIVATE"|"DEACTIVATE"|"ADD_ACCOUNT_REQUEST"| "ACCOUNT_CHANGE_REQUEST_APPROVED"|"CHANGE_ACCOUNT_BANK_DETAILS_REQUEST"
+            | "ADD_ACCOUNT"|"CHANGE_ACCOUNT_BANK_DETAILS"|"REMOVE_ACCOUNT"|"ADD_SOURCE_IP_REQUEST"|"CHANGE_SOURCE_IP_REQUEST"|"REMOVE_SOURCE_IP_REQUEST"
+            | "APPROVE_SOURCE_IP_REQUEST"|"ADD_SOURCE_IP"|"CHANGE_SOURCE_IP"|"REMOVE_SOURCE_IP"|"ADD_ENDPOINT"|"REMOVE_ENDPOINT"|"CHANGE_ENDPOINT"
+            | "FUNDS_DEPOSIT"|"FUNDS_WITHDRAWAL"|"NDC_CHANGE"|"NDC_RECALCULATED"| "ADD_CONTACT_INFO_REQUEST"| "CHANGE_CONTACT_INFO_REQUEST"
+            | "REMOVE_CONTACT_INFO_REQUEST"|"APPROVE_CONTACT_INFO_REQUEST"|"ADD_CONTACT_INFO"|"CHANGE_CONTACT_INFO"|"REMOVE_CONTACT_INFO"
+            | "ENABLE_PARTICIPANT"|"DISABLE_PARTICIPANT"|"CHANGE_PARTICIPANT_STATUS_REQUEST"|"APPROVE_PARTICIPANT_STATUS_REQUEST";
+        user: string;
+        timestamp: number;
+        notes: string | null;
+    }[];
 
-    netDebitCaps: IParticipantNetDebitCap[];
-    netDebitCapChangeRequests: IParticipantNetDebitCapChangeRequest[];
+    netDebitCaps: {
+        currencyCode: string;
+        type:  "ABSOLUTE"|"PERCENTAGE";
+        percentage: number | null;
+        currentValue: number;
+    }[];
+    netDebitCapChangeRequests: {
+        id: string;
+        createdBy: string;
+        createdDate: number;
+        approved: boolean;
+        approvedBy: string | null;
+        approvedDate: number | null;
+        currencyCode: string;
+        type: "ABSOLUTE"|"PERCENTAGE";
+        percentage: number | null;
+        fixedValue: number | null;
+        extReference: string | null;
+        note: string | null;
+    }[];
 
-    participantContacts: IParticipantContactInfo[];
-    participantContactInfoChangeRequests: IParticipantContactInfoChangeRequest[];
+    participantContacts: {
+        id: string;
+        name: string;
+        email: string;
+        phoneNumber: string;
+        role: string;
+    }[];
+    participantContactInfoChangeRequests: {
+        id: string;
+        name: string;
+        email: string;
+        phoneNumber: string;
+        role: string;
+        contactInfoId: string | null;
+        createdBy: string;
+        createdDate: number;
+        approved: boolean;
+        approvedBy: string | null;
+        approvedDate: number | null;
+        requestType: "ADD_PARTICIPANT_CONTACT_INFO" | "CHANGE_PARTICIPANT_CONTACT_INFO";
+    }[];
+
+    participantStatusChangeRequests: {
+        id: string;
+        isActive: boolean;
+        createdBy: string;
+        createdDate: number;
+        approved: boolean;
+        approvedBy: string | null;
+        approvedDate: number | null;
+        requestType: "CHANGE_PARTICIPANT_STATUS";
+    }[];
   }
-  
-  
-export declare interface IParticipantNetDebitCap {
-    currencyCode: string;
-    type: ParticipantNetDebitCapTypes;
-    percentage: number | null;
-    currentValue: number;
-}
-export declare interface IParticipantNetDebitCapChangeRequest {
-    id: string;
-    createdBy: string;
-    createdDate: number;
-    approved: boolean;
-    approvedBy: string | null;
-    approvedDate: number | null;
-    currencyCode: string;
-    type: ParticipantNetDebitCapTypes;
-    percentage: number | null;
-    fixedValue: number | null;
-    extReference: string | null;
-    note: string | null;
-}
-export declare interface IParticipantFundsMovement {
-    id: string;
-    createdBy: string;
-    createdDate: number;
-    approved: boolean;
-    approvedBy: string | null;
-    approvedDate: number | null;
-    direction: ParticipantFundsMovementDirections;
-    currencyCode: string;
-    amount: string;
-    transferId: string | null;
-    extReference: string | null;
-    note: string | null;
-}
-export declare interface IParticipantAllowedSourceIp {
-    id: string;
-    cidr: string;
-    portMode: ParticipantAllowedSourceIpsPortModes;
-    ports?: number[];
-    portRange?: {
-        rangeFirst: number;
-        rangeLast: number;
-    };
-}
-export declare interface IParticipantSourceIpChangeRequest extends IParticipantAllowedSourceIp {
-    allowedSourceIpId: string | null;
-    createdBy: string;
-    createdDate: number;
-    approved: boolean;
-    approvedBy: string | null;
-    approvedDate: number | null;
-    requestType: "ADD_SOURCE_IP" | "CHANGE_SOURCE_IP";
-}
-export declare interface IParticipantEndpoint {
-    id: string;
-    type: ParticipantEndpointTypes;
-    protocol: ParticipantEndpointProtocols;
-    value: string;
-}
-export declare interface IParticipantAccount {
-    id: string;
-    type: ParticipantAccountTypes;
-    currencyCode: string;
-    debitBalance: string | null;
-    creditBalance: string | null;
-    balance: string | null;
-    externalBankAccountId: string | null;
-    externalBankAccountName: string | null;
-}
-export declare interface IParticipantAccountChangeRequest {
-    id: string;
-    accountId: string | null;
-    type: ParticipantAccountTypes;
-    currencyCode: string;
-    externalBankAccountId: string | null;
-    externalBankAccountName: string | null;
-    createdBy: string;
-    createdDate: number;
-    approved: boolean;
-    approvedBy: string | null;
-    approvedDate: number | null;
-    requestType: "ADD_ACCOUNT" | "CHANGE_ACCOUNT_BANK_DETAILS";
-}
-export declare interface IParticipantActivityLogEntry {
-    changeType: ParticipantChangeTypes;
-    user: string;
-    timestamp: number;
-    notes: string | null;
-}
-export declare interface IParticipantContactInfo {
-    id: string;
-    name: string;
-    email: string;
-    phoneNumber: string;
-    role: string;
-}
-export declare interface IParticipantContactInfoChangeRequest extends IParticipantContactInfo {
-    contactInfoId: string | null;
-    createdBy: string;
-    createdDate: number;
-    approved: boolean;
-    approvedBy: string | null;
-    approvedDate: number | null;
-    requestType: "ADD_PARTICIPANT_CONTACT_INFO" | "CHANGE_PARTICIPANT_CONTACT_INFO";
-}
+

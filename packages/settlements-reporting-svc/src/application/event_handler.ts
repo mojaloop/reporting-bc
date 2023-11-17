@@ -88,7 +88,7 @@ export class SettlementReportingEventHandler {
 
     private async handleSettlementMatrixSettledEvt(event: SettlementMatrixSettledEvt): Promise<void> {
    
-        this._logger.info(`Got SettlementMatrixSettledEven info.`);
+        this._logger.info("Got SettlementMatrixSettledEven info.");
 
         if (!event.payload.settlementMatrixId) {
             throw new Error("Invalid matrix Id");

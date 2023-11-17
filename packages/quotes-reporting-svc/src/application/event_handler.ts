@@ -35,13 +35,34 @@
 
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { DomainEventMsg, IMessage, IMessageConsumer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { QuoteBCBulkQuoteExpiredErrorEvent, QuoteBCBulkQuoteExpiredErrorPayload, QuoteBCDestinationParticipantNotFoundErrorEvent, QuoteBCDestinationParticipantNotFoundErrorPayload, QuoteBCInvalidDestinationFspIdErrorEvent, QuoteBCInvalidDestinationFspIdErrorPayload, QuoteBCInvalidRequesterFspIdErrorEvent, QuoteBCInvalidRequesterFspIdErrorPayload, QuoteBCQuoteExpiredErrorEvent, QuoteBCQuoteExpiredErrorPayload, QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent, QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload, QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent, QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload, QuoteBCRequesterParticipantNotFoundErrorEvent, QuoteBCRequesterParticipantNotFoundErrorPayload, QuoteBCUnableToAddQuoteToDatabaseErrorEvent, QuoteBCUnableToAddQuoteToDatabaseErrorPayload, QuotingBCTopics } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import {
+    QuoteBCBulkQuoteExpiredErrorEvent,
+    QuoteBCBulkQuoteExpiredErrorPayload,
+    QuoteBCDestinationParticipantNotFoundErrorEvent,
+    QuoteBCDestinationParticipantNotFoundErrorPayload,
+    QuoteBCInvalidDestinationFspIdErrorEvent,
+    QuoteBCInvalidDestinationFspIdErrorPayload,
+    QuoteBCInvalidRequesterFspIdErrorEvent,
+    QuoteBCInvalidRequesterFspIdErrorPayload,
+    QuoteBCQuoteExpiredErrorEvent,
+    QuoteBCQuoteExpiredErrorPayload,
+    QuoteBCQuoteRuleSchemeViolatedRequestErrorEvent,
+    QuoteBCQuoteRuleSchemeViolatedRequestErrorPayload,
+    QuoteBCQuoteRuleSchemeViolatedResponseErrorEvent,
+    QuoteBCQuoteRuleSchemeViolatedResponseErrorPayload,
+    QuoteBCRequesterParticipantNotFoundErrorEvent,
+    QuoteBCRequesterParticipantNotFoundErrorPayload,
+    QuoteBCUnableToAddQuoteToDatabaseErrorEvent,
+    QuoteBCUnableToAddQuoteToDatabaseErrorPayload, QuoteRequestAcceptedEvt,
+    QuoteResponseAccepted,
+    QuotingBCTopics
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {
 	QuoteRequestReceivedEvt, QuoteResponseReceivedEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { IAccountLookupServiceAdapter, IMongoDbQuotesReportingRepo, IParticipantsServiceAdapter } from "../interfaces/infrastructure";
 import {
-	IParticipantReport, IQuoteReport, IQuoteSchemeRules, QuoteStatus
+	IParticipantReport, IQuoteReport, IQuoteSchemeRules
 } from "@mojaloop/reporting-bc-types-lib";
 
 
@@ -92,10 +113,14 @@ export class QuotesReportingEventHandler {
 			this._logger.debug(`Got message in QuotesEventHandler with name: ${message.msgName}`);
 			try {
 
+                // in reporting we listen only to events outputed by the target BC, never the ones coming in to it
+                // only QuoteRequestAcceptedEvt and QuoteResponseAccepted
+                // and the error events coming out of the quoting bc
+
 				if (message.msgName === QuoteRequestReceivedEvt.name) {
 					await this.handleQuoteRequestReceivedEvt(message as QuoteRequestReceivedEvt);
 				} else if (message.msgName === QuoteResponseReceivedEvt.name) {
-					await this.handleQuoteResponseReceivedEvt(message as QuoteResponseReceivedEvt)
+					await this.handleQuoteResponseReceivedEvt(message as QuoteResponseReceivedEvt);
 				} else {
 					// ignore message, don't bother logging
 				}
@@ -177,7 +202,7 @@ export class QuotesReportingEventHandler {
 			payeeReceiveAmount: null,
 			payeeFspFee: null,
 			payeeFspCommission: null,
-			status: QuoteStatus.PENDING,
+			status: "PENDING",
 			condition: null,
 			totalTransferAmount: null,
 			ilpPacket: null,
@@ -209,7 +234,7 @@ export class QuotesReportingEventHandler {
 		const destinationFspId = message.fspiopOpaqueState?.destinationFspId;
 		const expirationDate = message.payload.expiration ?? null;
 		let quoteErrorEvent: DomainEventMsg | null = null;
-		let quoteStatus: QuoteStatus = QuoteStatus.ACCEPTED;
+		let quoteStatus = "ACCEPTED";
 
 		const isSchemaValid = this.validateScheme(message);
 		if (!isSchemaValid) {
@@ -224,7 +249,7 @@ export class QuotesReportingEventHandler {
 			const requesterParticipantError = await this.validateRequesterParticipantInfoOrGetErrorEvent(requesterFspId, quoteId, null);
 			if (requesterParticipantError) {
 				quoteErrorEvent = requesterParticipantError;
-				quoteStatus = QuoteStatus.REJECTED;
+				quoteStatus = "REJECTED";
 			}
 		}
 
@@ -232,7 +257,7 @@ export class QuotesReportingEventHandler {
 			const destinationParticipantError = await this.validateDestinationParticipantInfoOrGetErrorEvent(destinationFspId, quoteId, null);
 			if (destinationParticipantError) {
 				quoteErrorEvent = destinationParticipantError;
-				quoteStatus = QuoteStatus.REJECTED;
+				quoteStatus = "REJECTED";
 			}
 		}
 
@@ -240,7 +265,7 @@ export class QuotesReportingEventHandler {
 			const expirationDateError = this.validateExpirationDateOrGetErrorEvent(quoteId, null, expirationDate);
 			if (expirationDateError) {
 				quoteErrorEvent = expirationDateError;
-				quoteStatus = QuoteStatus.EXPIRED;
+				quoteStatus = "EXPIRED";
 			}
 		}
 
@@ -256,7 +281,7 @@ export class QuotesReportingEventHandler {
 				payeeFspFee: message.payload.payeeFspFee,
 				payeeReceiveAmount: message.payload.payeeReceiveAmount,
 				transferAmount: message.payload.transferAmount,
-				status: quoteStatus
+				status: quoteStatus as "RECEIVED" | "PENDING" | "REJECTED" | "ACCEPTED" | "EXPIRED"  | null
 			};
 
 			try {
@@ -295,7 +320,7 @@ export class QuotesReportingEventHandler {
 		let participant: IParticipantReport | null = null;
 
 		if (!participantId) {
-			const errorMessage = `Payee fspId is null or undefined`;
+			const errorMessage = "Payee fspId is null or undefined";
 			this._logger.error(errorMessage);
 			const errorPayload: QuoteBCInvalidDestinationFspIdErrorPayload = {
 				bulkQuoteId,
@@ -351,7 +376,7 @@ export class QuotesReportingEventHandler {
 		let participant: IParticipantReport | null = null;
 
 		if (!participantId) {
-			const errorMessage = `Payer fspId is null or undefined`;
+			const errorMessage = "Payer fspId is null or undefined";
 			this._logger.error(errorMessage);
 			const errorPayload: QuoteBCInvalidRequesterFspIdErrorPayload = {
 				bulkQuoteId,
