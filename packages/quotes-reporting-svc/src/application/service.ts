@@ -113,7 +113,6 @@ export class Service {
     static messageConsumer: IMessageConsumer;
     static handler: QuotesReportingEventHandler;
     static quoteRepo: IMongoDbQuotesReportingRepo;
-    static participantAdapter: IParticipantsServiceAdapter;
     static accountLookupAdapter: IAccountLookupServiceAdapter;
     static tokenHelper: TokenHelper;
 
@@ -121,7 +120,6 @@ export class Service {
         logger?: ILogger,
         messageConsumer?: IMessageConsumer,
         quotesRepo?: IMongoDbQuotesReportingRepo,
-        participantAdapter?: IParticipantsServiceAdapter,
         accountlookupAdapter?: IAccountLookupServiceAdapter
     ): Promise<void> {
         console.log(`Service starting with PID: ${process.pid}`);
@@ -168,15 +166,6 @@ export class Service {
 
         this.accountLookupAdapter = accountlookupAdapter;
 
-        if (!participantAdapter) {
-            const authRequester: IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
-            authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-
-            participantAdapter = new ParticipantAdapter(this.logger, PARTICIPANTS_SVC_URL, authRequester, PARTICIPANTS_CLIENT_CACHE_MS);
-        }
-
-        this.participantAdapter = participantAdapter;
-
         // TODO start actual service code
 
         this.handler = new QuotesReportingEventHandler(
@@ -184,7 +173,6 @@ export class Service {
             this.logger,
             this.quoteRepo,
             this.accountLookupAdapter,
-            this.participantAdapter,
             PASS_THROUGH_MODE,
             SCHEME_RULES);
         await this.handler.start();

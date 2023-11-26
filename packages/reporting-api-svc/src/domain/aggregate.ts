@@ -38,7 +38,6 @@ import { IReportingRepo } from "../types";
 import { AuditSecurityContext, IAuditClient, } from "@mojaloop/auditing-bc-public-types-lib";
 import {
     CallSecurityContext,
-    ForbiddenError,
     IAuthorizationClient,
     MakerCheckerViolationError,
     UnauthorizedError,
