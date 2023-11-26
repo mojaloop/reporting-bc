@@ -1,6 +1,6 @@
 {
     "name": "@mojaloop/reporting-bc-quotes-reporting-svc",
-    "version": "0.3.4",
+    "version": "0.3.5",
     "description": "mojaloop quotes reporting service",
     "license": "Apache-2.0",
     "homepage": "https://github.com/mojaloop/reporting-bc/",
