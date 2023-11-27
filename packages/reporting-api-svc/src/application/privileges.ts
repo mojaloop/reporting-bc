@@ -36,9 +36,17 @@ import { ReportingPrivileges } from "../domain/privilege_names";
 // TODO: Need to define privileges for reporting
 export const ReportingPrivilegesDefinition = [
     {
-        privId: ReportingPrivileges.VIEW_ALL_TRANSFERS,
-        labelName: "View All Transfers",
-        description: "Allows for the retrieval of any transfers"
+        privId: ReportingPrivileges.VIEW_SETTLEMENT_INITIATION_REPORT,
+        labelName: "View Settlement Initiation Report",
+        description: "Allows for the retrieval of settlement initiation report"
+    }, {
+        privId: ReportingPrivileges.VIEW_DFSP_SETTLEMENT_DETAIL_REPORT,
+        labelName: "View DFSP Settlement Detail Report",
+        description: "Allows for the retrieval of DFSP settlement detail report"
+    }, {
+        privId: ReportingPrivileges.VIEW_DFSP_SETTLEMENT_REPORT,
+        labelName: "View DFSP Settlement Report",
+        description: "Allows for the retrieval of DFSP settlement report"
     }
 ];
  
