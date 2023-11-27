@@ -38,6 +38,7 @@ import { IReportingRepo } from "../types";
 import { AuditSecurityContext, IAuditClient, } from "@mojaloop/auditing-bc-public-types-lib";
 import {
     CallSecurityContext,
+    ForbiddenError,
     IAuthorizationClient,
     MakerCheckerViolationError,
     UnauthorizedError,
@@ -45,6 +46,7 @@ import {
 import { Row, Workbook } from "exceljs";
 import * as fs from "fs";
 import { time } from "console";
+import { ReportingPrivileges } from "./privilege_names";
 
 export class ReportingAggregate {
     private _logger: ILogger;
@@ -64,17 +66,17 @@ export class ReportingAggregate {
         this._reportingRepo = reportingRepo;
     }
 
-    // private _enforcePrivilege(secCtx: CallSecurityContext, privName: string): void {
-    //     for (const roleId of secCtx.platformRoleIds) {
-    //         if (this._authorizationClient.roleHasPrivilege(roleId, privName)) return;
-    //     }
-    //     throw new ForbiddenError(
-    //         `Required privilege "${privName}" not held by caller`
-    //     );
-    // }
+    private _enforcePrivilege(secCtx: CallSecurityContext, privName: string): void {
+        for (const roleId of secCtx.platformRoleIds) {
+            if (this._authorizationClient.roleHasPrivilege(roleId, privName)) return;
+        }
+        throw new ForbiddenError(
+            `Required privilege "${privName}" not held by caller`
+        );
+    }
 
     async getSettlementInitiationByMatrixId(secCtx: CallSecurityContext, id: string): Promise<any> {
-        // this._enforcePrivilege(secCtx, ParticipantPrivilegeNames.VIEW_PARTICIPANT);
+        this._enforcePrivilege(secCtx, ReportingPrivileges.VIEW_SETTLEMENT_INITIATION_REPORT);
 
 
         const result = await this._reportingRepo.getSettlementInitiationByMatrixId(id);
@@ -87,7 +89,7 @@ export class ReportingAggregate {
     }
 
     async getSettlementInitiationByMatrixIdExport(secCtx: CallSecurityContext, id: string): Promise<Buffer> {
-        // this._enforcePrivilege(secCtx, ParticipantPrivilegeNames.VIEW_PARTICIPANT);
+        this._enforcePrivilege(secCtx, ReportingPrivileges.VIEW_SETTLEMENT_INITIATION_REPORT);
 
         this._logger.debug("Get settlementInitiationbyMatrixIdExport");
 
@@ -183,7 +185,7 @@ export class ReportingAggregate {
     }
 
     async getDFSPSettlementDetail(secCtx: CallSecurityContext, participantId: string, matrixId: string): Promise<any> {
-        // this._enforcePrivilege(secCtx, ParticipantPrivilegeNames.VIEW_PARTICIPANT);
+        this._enforcePrivilege(secCtx, ReportingPrivileges.VIEW_DFSP_SETTLEMENT_DETAIL_REPORT);
 
         const result = await this._reportingRepo.getDFSPSettlementDetail(participantId,matrixId);
         if (result == null)
@@ -195,7 +197,7 @@ export class ReportingAggregate {
     }
 
     async getDFSPSettlement(secCtx: CallSecurityContext, participantId: string, matrixId: string): Promise<any> {
-        // this._enforcePrivilege(secCtx, ParticipantPrivilegeNames.VIEW_PARTICIPANT);
+        this._enforcePrivilege(secCtx, ReportingPrivileges.VIEW_DFSP_SETTLEMENT_REPORT);
 
         const result = await this._reportingRepo.getDFSPSettlement(participantId,matrixId);
         if (result == null)
