@@ -32,7 +32,7 @@
 "use strict";
 
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
-import { ISettlementMatrix, ISettlementBatch, ISettlementBatchTransfer } from "@mojaloop/reporting-bc-types-lib";
+import { ISettlementMatrix, ISettlementBatch, ISettlementBatchTransfer, BatchTransferSearchResults } from "@mojaloop/reporting-bc-types-lib";
 import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-public-types-lib";
 import { AuthenticatedHttpRequester } from "@mojaloop/security-bc-client-lib";
 import { ISettlementServiceAdapter } from "../types/settlement_adapter_interface";
@@ -43,6 +43,7 @@ export class SettlementsAdapter implements ISettlementServiceAdapter {
 	private readonly _authNSvcTokenUrl: string;
 	private readonly _clientId: string;
 	private readonly _clientSecret: string;
+	private readonly _timeoutMs: number;
 	private validateStatus = (status: number): boolean => status === 200;
 
 	constructor(
@@ -51,6 +52,7 @@ export class SettlementsAdapter implements ISettlementServiceAdapter {
 		authNSvcTokenUrl: string,
 		clientId: string,
 		clientSecret: string,
+		timeoutMs: number
 
 	) {
 		this._logger = logger.createChild(this.constructor.name);
@@ -58,6 +60,7 @@ export class SettlementsAdapter implements ISettlementServiceAdapter {
 		this._authNSvcTokenUrl = authNSvcTokenUrl;
 		this._clientId = clientId;
 		this._clientSecret = clientSecret;
+		this._timeoutMs = timeoutMs;
 	}
 
 
@@ -68,7 +71,7 @@ export class SettlementsAdapter implements ISettlementServiceAdapter {
 			authRequester.setAppCredentials(this._clientId, this._clientSecret);
 
 			const url = new URL(`/matrix/${matrixId}/`, this._settlementSVCBaseUrl).toString();
-			const resp = await authRequester.fetch(url);
+			const resp = await authRequester.fetch(url,this._timeoutMs);
 
 			if (resp.status != 200) {
 				throw new Error("SettlementMatrix could not get settlement matrix");
@@ -91,7 +94,7 @@ export class SettlementsAdapter implements ISettlementServiceAdapter {
 			authRequester.setAppCredentials(this._clientId, this._clientSecret);
 
 			const url = new URL(`/batches/${batchId}/`, this._settlementSVCBaseUrl).toString();
-			const resp = await authRequester.fetch(url);
+			const resp = await authRequester.fetch(url,this._timeoutMs);
 
 			if (resp.status != 200) {
 				throw new Error("SettlementMatrix could not get settlement batches");
@@ -106,7 +109,7 @@ export class SettlementsAdapter implements ISettlementServiceAdapter {
 		}
 	}
 
-	async getSettlementBatchTransfersByMatrixId(matrixId: string): Promise<ISettlementBatchTransfer[] | null> {
+	async getSettlementBatchTransfersByMatrixId(matrixId: string): Promise<BatchTransferSearchResults | null> {
 		try {
 
 			this._logger.info(`Get settlement batch transfers by Matrix ID: ${matrixId}.`);
@@ -114,7 +117,7 @@ export class SettlementsAdapter implements ISettlementServiceAdapter {
 			authRequester.setAppCredentials(this._clientId, this._clientSecret);
 			
 			const url = new URL(`/transfers?matrixId=${matrixId}`, this._settlementSVCBaseUrl).toString();
-			const resp = await authRequester.fetch(url);
+			const resp = await authRequester.fetch(url,this._timeoutMs);
 
 			if (resp.status != 200) {
 				throw new Error("SettlementMatrix could not get settlement transfers");
