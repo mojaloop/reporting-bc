@@ -118,7 +118,7 @@ export class SettlementReportingEventHandler {
             this._logger.info(`Matrix ID: ${matrix.id} does not have transfers.`);
         } else {
             //store transfers
-            for (const settlementTransfer of settlementTransfers) {
+            for (const settlementTransfer of settlementTransfers.items) {
                 const transfer = await this._settlementRepo.getTransferById(settlementTransfer.transferId);
                 if(transfer){                    
                     transfer.batchId = settlementTransfer.batchId;

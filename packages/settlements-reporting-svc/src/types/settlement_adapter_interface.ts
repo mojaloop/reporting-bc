@@ -33,13 +33,13 @@
 
 import {
     ISettlementBatch,
-    ISettlementBatchTransfer,
-    ISettlementMatrix
+    ISettlementMatrix,
+    BatchTransferSearchResults
 } from "@mojaloop/reporting-bc-types-lib";
 
 export interface ISettlementServiceAdapter {
     getSettlementMatrixByMatrixId(matrixId: string): Promise<ISettlementMatrix| null>;
     getBatchByBatchId(batchId: string): Promise<ISettlementBatch| null>;
-    getSettlementBatchTransfersByMatrixId(matrixId: string): Promise<ISettlementBatchTransfer[]| null>;
+    getSettlementBatchTransfersByMatrixId(matrixId: string): Promise<BatchTransferSearchResults| null>;
 }
 

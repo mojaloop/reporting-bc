@@ -130,3 +130,13 @@ export interface ISettlementMatrixBatchAccount {
     debitBalance: string;
     creditBalance: string;
 }
+
+export type SearchReults = {
+    pageIndex: number;
+    pageSize: number;
+    totalPages: number;
+};
+
+export type BatchTransferSearchResults = SearchReults & {
+    items: ISettlementBatchTransfer[];
+};

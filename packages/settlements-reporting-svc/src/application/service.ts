@@ -147,7 +147,7 @@ export class Service {
         this.settlementRepo = settlementRepo;
 
         if (!settlementAdapter) {
-            settlementAdapter = new SettlementsAdapter(this.logger, SETTLEMENTS_SVC_URL, AUTH_N_SVC_TOKEN_URL, SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+            settlementAdapter = new SettlementsAdapter(this.logger, SETTLEMENTS_SVC_URL, AUTH_N_SVC_TOKEN_URL, SVC_CLIENT_ID, SVC_CLIENT_SECRET,SETTLEMENTS_CLIENT_CACHE_MS);
         }
         this.settlementAdapter = settlementAdapter;
 
