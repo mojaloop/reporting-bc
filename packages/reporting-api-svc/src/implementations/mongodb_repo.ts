@@ -79,74 +79,51 @@ export class MongoReportingRepo implements IReportingRepo {
             const result =
                 this.matrices.aggregate([
                     {
-                        $match: {
-                            id: matrixId, // Filter by matrices ID
-                        },
+                      $match: {
+                        id: matrixId
+                      },
                     },
                     {
-                        $unwind: "$balancesByParticipant",
+                      $unwind: "$balancesByParticipant",
                     },
                     {
-                        $lookup: {
-                            from: "participant",
-                            localField: "balancesByParticipant.participantId",
-                            foreignField: "id",
-                            as: "participantInfo",
-                        },
+                      $lookup: {
+                        from: "participant",
+                        localField: "balancesByParticipant.participantId",
+                        foreignField: "id",
+                        as: "participantInfo",
+                      },
                     },
                     {
-                        $unwind: "$participantInfo",
+                      $unwind: "$participantInfo",
                     },
                     {
-                        $project: {
-                            _id: 0,
-                            matrixId: "$id",
-                            participantId: "$participantInfo.id",
-                            externalBankAccountId: {
-                                $arrayElemAt: [
-                                    {
-                                        $map: {
-                                            input: {
-                                                $filter: {
-                                                    input: "$participantInfo.participantAccounts",
-                                                    as: "account",
-                                                    cond: { $eq: ["$$account.type", "SETTLEMENT"] }
-                                                }
-                                            },
-                                            as: "account",
-                                            in: "$$account.externalBankAccountId"
-                                        }
-                                    },
-                                    0
-                                ]
-                            },
-                            externalBankAccountName: {
-                                $arrayElemAt: [
-                                    {
-                                        $map: {
-                                            input: {
-                                                $filter: {
-                                                    input: "$participantInfo.participantAccounts",
-                                                    as: "account",
-                                                    cond: { $eq: ["$$account.type", "SETTLEMENT"] }
-                                                }
-                                            },
-                                            as: "account",
-                                            in: "$$account.externalBankAccountName"
-                                        }
-                                    },
-                                    0
-                                ]
-                            },
-                            participantCurrencyCode: "$balancesByParticipant.currencyCode",
-                            participantDebitBalance: "$balancesByParticipant.debitBalance",
-                            participantCreditBalance: "$balancesByParticipant.creditBalance",
-                            settlementCreatedDate: "$createdAt",
-                        },
+                      $unwind: "$participantInfo.participantAccounts"
+                    },
+                    {
+                      $match: {
+                        "participantInfo.participantAccounts.type": "SETTLEMENT",
+                        $expr: {
+                          $eq: ["$balancesByParticipant.currencyCode", "$participantInfo.participantAccounts.currencyCode"]
+                        }
+                      }
+                    },
+                    {
+                      $project: {
+                          _id: 0,
+                          matrixId: "$id",
+                          participantId: "$participantInfo.id",
+                          externalBankAccountId: "$participantInfo.participantAccounts.externalBankAccountId",
+                          externalBankAccountName: "$participantInfo.participantAccounts.externalBankAccountName",
+                          participantCurrencyCode: "$balancesByParticipant.currencyCode",
+                          participantDebitBalance: "$balancesByParticipant.debitBalance",
+                          participantCreditBalance: "$balancesByParticipant.creditBalance",
+                          settlementCreatedDate: "$createdAt",
+                      }
                     }
-                ]).toArray();
+                  ]).toArray();                 
 
-            return result;
+                return result;
         } catch (e: unknown) {
             this._logger.error(e, `getSettlementInitiationByMatrixId: error getting data for matrixId: ${matrixId} - ${e}`);
             return Promise.reject(e);

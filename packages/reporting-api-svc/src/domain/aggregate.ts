@@ -76,7 +76,7 @@ export class ReportingAggregate {
     }
 
     async getSettlementInitiationByMatrixId(secCtx: CallSecurityContext, id: string): Promise<any> {
-        this._enforcePrivilege(secCtx, ReportingPrivileges.VIEW_SETTLEMENT_INITIATION_REPORT);
+        this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_SETTLEMENT_INITIATION_REPORT);
 
 
         const result = await this._reportingRepo.getSettlementInitiationByMatrixId(id);
@@ -89,7 +89,7 @@ export class ReportingAggregate {
     }
 
     async getSettlementInitiationByMatrixIdExport(secCtx: CallSecurityContext, id: string): Promise<Buffer> {
-        this._enforcePrivilege(secCtx, ReportingPrivileges.VIEW_SETTLEMENT_INITIATION_REPORT);
+        this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_SETTLEMENT_INITIATION_REPORT);
 
         this._logger.debug("Get settlementInitiationbyMatrixIdExport");
 
@@ -185,7 +185,7 @@ export class ReportingAggregate {
     }
 
     async getDFSPSettlementDetail(secCtx: CallSecurityContext, participantId: string, matrixId: string): Promise<any> {
-        this._enforcePrivilege(secCtx, ReportingPrivileges.VIEW_DFSP_SETTLEMENT_DETAIL_REPORT);
+        this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_DFSP_SETTLEMENT_DETAIL_REPORT);
 
         const result = await this._reportingRepo.getDFSPSettlementDetail(participantId,matrixId);
         if (result == null)
@@ -197,7 +197,7 @@ export class ReportingAggregate {
     }
 
     async getDFSPSettlement(secCtx: CallSecurityContext, participantId: string, matrixId: string): Promise<any> {
-        this._enforcePrivilege(secCtx, ReportingPrivileges.VIEW_DFSP_SETTLEMENT_REPORT);
+        this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_DFSP_SETTLEMENT_REPORT);
 
         const result = await this._reportingRepo.getDFSPSettlement(participantId,matrixId);
         if (result == null)
