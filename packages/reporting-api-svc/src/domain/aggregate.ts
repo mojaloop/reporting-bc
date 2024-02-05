@@ -208,6 +208,233 @@ export class ReportingAggregate {
         return result;
     }
 
+    async getDFSPSettlementExport(secCtx: CallSecurityContext, participantId: string, matrixId: string): Promise<Buffer> {
+        this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_SETTLEMENT_INITIATION_REPORT);
+
+        this._logger.debug("Get getDFSPSettlementExport");
+
+        const result = await this._reportingRepo.getDFSPSettlement(participantId, matrixId);
+        if (result === null || (Array.isArray(result) && result.length === 0))
+            throw new Error(
+                `DFSP Settlement with participantId: ${participantId} and matrixId: ${matrixId} not found.`
+            );
+
+        const workbook = await this.generateSettlementExcelFile(result);
+        return workbook.xlsx.writeBuffer();
+    }
+
+    async generateSettlementExcelFile(data: any): Promise<any> {
+
+        // Function to add borders to a row
+        function addBordersToRow(row: Row) {
+            row.eachCell((cell) => {
+                cell.border = {
+                    top: { style: "thin" },
+                    right: { style: "thin" },
+                    bottom: { style: "thin" },
+                    left: { style: "thin" },
+                };
+                if (cell.value === "Settlement ID" ||
+                    cell.value === "Settlement Created Date" ||
+                    cell.value === "DFSPID" ||
+                    cell.value === "DFSPName" ||
+                    cell.value === "TimeZoneOffset" ||
+                    cell.value === "DFSP ID" ||
+                    cell.value === "DFSP Name" ||
+                    cell.value === "Sent to FSP" ||
+                    cell.value === "Received from FSP" ||
+                    cell.value === "Total Transaction Volume" ||
+                    cell.value === "Total Value of All Transactions" ||
+                    cell.value === "Net Position vs. Each DFSP" ||
+                    cell.value === "Currency" ||
+                    cell.value === "Aggregated Net Positions") {
+                    cell.font = { bold: true };
+                }
+                cell.alignment = { vertical: "middle" };
+            });
+        }
+        
+        function applyBorder(cell:number | string) {
+            settlementInitiation.getCell(cell).border = {
+                top: {style:'thin'},
+                left: {style:'thin'},
+                bottom: {style:'thin'},
+                right: {style:'thin'}
+            }
+        }
+
+        function applyFontBold(cell:number | string) {
+            settlementInitiation.getCell(cell).font = { bold: true };
+        }
+
+        function formatNetPosition(netPosition: number) {
+            return netPosition < 0
+                ? `(${netPosition.toString().replace("-", "")})`
+                : netPosition;
+        }
+
+        function getAggregatedNetPositions() {
+            return data.reduce(function(accumulator:[{currencyCode:string,value:number}],dataRow:{
+                matrixId: string; 
+                settlementCreatedDate: string | number | Date;
+                relateParticipantId: string ; 
+                relateParticipantName:String ;
+                totalSentCount: number;
+                totalAmountSent:number;
+                totalReceivedCount:number;
+                totalAmountReceived:number;
+                currency: string;
+            }){
+                const { currency } = dataRow;
+                const index = accumulator.findIndex(item => item.currencyCode === currency);
+
+                if (index === -1) {
+                 const netPositionValue =  dataRow.totalAmountReceived - dataRow.totalAmountSent
+                 accumulator.push({ currencyCode:currency,value:netPositionValue });
+                } else {
+                    const value =  dataRow.totalAmountReceived - dataRow.totalAmountSent
+                    accumulator[index].value += value;
+                }
+                
+                return accumulator;
+            },[]);
+        }
+
+        const workbook = new Workbook();
+        const settlementInitiation = workbook.addWorksheet("DFSPSettlementReport");
+        settlementInitiation.properties.defaultColWidth = 25 ;
+        settlementInitiation.properties.defaultRowHeight = 26;
+
+        const date = new Date(data[0].settlementDate);
+
+        const options: Intl.DateTimeFormatOptions = {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true, // Use 12-hour format
+        };
+
+        const formatter = new Intl.DateTimeFormat("en-US", options);
+        const formattedDate = formatter.format(date);
+        // Split the formatted date string
+        const [month, day, year, time, amPm] = formattedDate.replaceAll(",","").split(" ");
+        // Reconstruct the date in the desired format
+        const finalFormattedDate = `${day}-${month}-${year} ${time} ${amPm}`;
+
+        const settlementId = settlementInitiation.addRow(["Settlement ID", data[0].matrixId]);
+        addBordersToRow(settlementId);
+        const settlementDate = settlementInitiation.addRow(["Settlement Created Date", finalFormattedDate]);
+        addBordersToRow(settlementDate);
+        const dfspId = settlementInitiation.addRow(["DFSPID", data[0].paramParticipantId]);
+        addBordersToRow(dfspId);
+        const dfspName = settlementInitiation.addRow(["DFSPName", data[0].paramParticipantName]);
+        addBordersToRow(dfspName);
+        const timeZoneOffset = settlementInitiation.addRow(["TimeZoneOffset", "UTC±00:00"]);
+        applyFontBold('A5');
+        addBordersToRow(timeZoneOffset);
+
+        settlementInitiation.mergeCells('B1', 'C1');
+        settlementInitiation.mergeCells('B2', 'C2');
+        settlementInitiation.mergeCells('B3', 'C3');
+        settlementInitiation.mergeCells('B4', 'C4');
+        settlementInitiation.mergeCells('B5', 'C5');
+               
+        // Put empty rowsettlementInitiation
+        settlementInitiation.addRow([]);
+        // Define the detail table fields
+        const details = settlementInitiation.addRow(["DFSPID", "DFSPName", "Sent to FSP","", "Received from FSP","", "Total Transaction Volume","Total Value of All Transactions","Net Position vs. Each DFSP","Currency"]);
+        
+        settlementInitiation.mergeCells('C7:D7');
+        settlementInitiation.mergeCells('E7:F7');
+        settlementInitiation.mergeCells('G7:G8');
+        settlementInitiation.mergeCells('H7:H8');
+        settlementInitiation.mergeCells('I7:I8');
+        settlementInitiation.mergeCells('J7:J8');
+
+        settlementInitiation.getCell('C8').value="Volume";
+        settlementInitiation.getCell('D8').value="Value";
+        settlementInitiation.getCell('E8').value="Volume";
+        settlementInitiation.getCell('F8').value="Value";
+
+        applyBorder('B8');
+        applyFontBold('B8');
+
+        applyBorder('C8');
+        applyFontBold('C8');
+
+        applyBorder('D8');
+        applyFontBold('D8');
+        
+        applyBorder('E8');
+        applyFontBold('E8');
+        
+        applyBorder('F8');
+        applyFontBold('F8');
+        
+        addBordersToRow(details);
+
+        // Populate the detail table with data
+        data.forEach((dataRow: { matrixId: string; settlementCreatedDate: string | number | Date; relateParticipantId: string ; relateParticipantName:String ;totalSentCount: number;totalAmountSent:number;
+            totalReceivedCount:number;totalAmountReceived:number;currency: string; }) => {
+            const row = settlementInitiation.addRow([
+                dataRow.relateParticipantId,
+                dataRow.relateParticipantName,
+                dataRow.totalSentCount,
+                "",
+                dataRow.totalReceivedCount,
+                "",
+                dataRow.totalSentCount + dataRow.totalReceivedCount,
+                "",
+                formatNetPosition(dataRow.totalAmountReceived - dataRow.totalAmountSent),
+                dataRow.currency
+            ]);
+
+            const totalAmountSentCell = row.getCell(4);
+            totalAmountSentCell.value = (dataRow.totalAmountSent).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+
+            const totalAmountReceivedCell = row.getCell(6);
+            totalAmountReceivedCell.value = (dataRow.totalAmountReceived).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+            
+            const totalValueAllTransactions = row.getCell(8);
+            totalValueAllTransactions.value = (dataRow.totalAmountSent + dataRow.totalAmountReceived).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+
+            const netPositionVsEachDFSP = row.getCell(9);
+
+            addBordersToRow(row);
+            totalAmountSentCell.alignment = { vertical:"middle",horizontal:"right" };
+            totalAmountReceivedCell.alignment = { vertical:"middle",horizontal:"right" };
+            totalValueAllTransactions.alignment = { vertical:"middle",horizontal:"right" };
+            netPositionVsEachDFSP.alignment = { vertical:"middle",horizontal:"right" };
+        });
+
+        settlementInitiation.addRow([]);
+
+        const aggregatedNetPositions = getAggregatedNetPositions();
+        const aggregateNetPositionsHeader = settlementInitiation.addRow(["Aggregated Net Positions"]);
+        const cellA1 = aggregateNetPositionsHeader.getCell(1);
+        
+        // Merge the cell with adjacent columns (for example, merge with 2 columns to the right)
+        const column = Number(cellA1.col + 1 ); 
+        const mergeEndColumn = String.fromCharCode(column + 65 - 1); // Convert to ASCII character (A=65)
+
+        settlementInitiation.mergeCells(`A${cellA1.row}:${mergeEndColumn}${cellA1.row}`);
+        addBordersToRow(aggregateNetPositionsHeader);
+
+        aggregatedNetPositions.forEach((dataRow: { currencyCode: string; value: number }) => {
+            const row = settlementInitiation.addRow([
+                dataRow.currencyCode,
+                dataRow.value,
+            ]);
+
+            addBordersToRow(row);
+        });
+
+        return workbook;
+    }
+
     async getSettlementMatricesByDfspNameAndFromDateToDate(secCtx: CallSecurityContext, participantId: string, startDate: number, endDate: number): Promise<any> {
         // this._enforcePrivilege(secCtx, ParticipantPrivilegeNames.VIEW_PARTICIPANT);
 
