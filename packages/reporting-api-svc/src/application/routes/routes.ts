@@ -134,7 +134,7 @@ export class ExpressRoutes extends BaseRoutes {
                         matrixId
                     );
                     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-                    res.setHeader("Content-Disposition", "attachment; filename=settlementInitiation.xlsx");
+                    res.setHeader("Content-Disposition", "attachment; filename=DFSPSettlementReport.xlsx");
                     res.status(200).send(fetchedBuffer);
                 }else {
                     const fetchedJson = await this.aggregate.getDFSPSettlement(
