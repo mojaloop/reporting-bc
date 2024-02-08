@@ -118,19 +118,34 @@ export class ExpressRoutes extends BaseRoutes {
     private async getDFSPSettlement(req: express.Request, res: express.Response): Promise<void> {
         const participantId = req.query.participantId as string || req.query.participantId as string;
 		const matrixId = req.query.matrixId as string || req.query.matrixid as string;
+        const excelFormat = req.query.format && (req.query.format as string).toUpperCase() === "EXCEL" ? true : false;
 
         this.logger.debug(`Fetching DFSP Settlement data for ParticipantId: ${participantId} and MatrixId: ${matrixId}.`);
 
         try {
             if(!participantId || !matrixId){
                 throw new Error("Invalid input parameters.");
+            }else{
+
+                if(excelFormat){
+                    const fetchedBuffer = await this.aggregate.getDFSPSettlementExport(
+                        req.securityContext!,
+                        participantId,
+                        matrixId
+                    );
+                    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                    res.setHeader("Content-Disposition", "attachment; filename=DFSPSettlementReport.xlsx");
+                    res.status(200).send(fetchedBuffer);
+                }else {
+                    const fetchedJson = await this.aggregate.getDFSPSettlement(
+                        req.securityContext!,
+                        participantId,
+                        matrixId
+                    );
+                    res.send(fetchedJson);
+                }
+
             }
-            const fetched = await this.aggregate.getDFSPSettlement(
-                req.securityContext!,
-                participantId,
-                matrixId
-            );
-            res.send(fetched);
         } catch (err: any) {
             this.logger.error(err);
             res.status(500).json({
