@@ -184,6 +184,155 @@ export class ReportingAggregate {
         return workbook;
     }
 
+    async getDFSPSettlementDetailExport(secCtx: CallSecurityContext, participantId: string, matrixId: string): Promise<Buffer> {
+        this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_SETTLEMENT_INITIATION_REPORT);
+
+        this._logger.debug("Get DFSPSettlementDetailExport");
+
+        const result = await this._reportingRepo.getDFSPSettlementDetail(participantId,matrixId);
+        if (result === null || (Array.isArray(result) && result.length === 0))
+            throw new Error(
+                `DFSP Settlement Detail with participantId: ${participantId} and matrixId: ${matrixId} not found.`
+            );
+
+        const workbook = await this.generateSettlementDetailExcelFile(result, participantId);
+        return workbook.xlsx.writeBuffer();
+    }
+
+    async generateSettlementDetailExcelFile(data: any, participantId: string): Promise<any> {
+       let detailReports = []; 
+
+        detailReports = data.map((detailReport:any) => ({...detailReport,
+                        dpspName : participantId === detailReport.payerFspId ? detailReport.payerParticipantName : detailReport.payeeParticipantName,
+                        sentAmount: participantId === detailReport.payerFspId ? Number(detailReport.Amount) : 0,
+                        receivedAmount: participantId === detailReport.payeeFspId ? Number(detailReport.Amount) : 0,
+                        currency: detailReport.Currency,
+        }));        
+
+        // Function to add borders to a row
+        function addBordersToRow(row: Row) {
+            row.eachCell((cell) => {
+                cell.border = {
+                    top: { style: "thin" },
+                    right: { style: "thin" },
+                    bottom: { style: "thin" },
+                    left: { style: "thin" },
+                };
+                if (cell.value === "Settlement ID" ||
+                    cell.value === "Settlement Created Date" ||
+                    cell.value === "DFSPID" ||
+                    cell.value === "DFSPName" ||
+                    cell.value === "TimeZoneOffset" ||
+                    cell.value === "Sender DFSP ID" ||
+                    cell.value === "Sender DFSP Name" ||
+                    cell.value === "Receiver DFSP ID" ||
+                    cell.value === "Receiver DFSP Name" ||
+                    cell.value === "Transfer ID" ||
+                    cell.value === "Tx Type" ||
+                    cell.value === "Transaction Date" ||
+                    cell.value === "Sender ID Type" ||
+                    cell.value === "Sender ID" ||
+                    cell.value === "Receiver ID Type" ||
+                    cell.value === "Receiver ID" ||
+                    cell.value === "Received Amount" ||
+                    cell.value === "Sent Amount" ||
+                    cell.value === "Fee" ||
+                    cell.value === "Currency") {
+                    cell.font = { bold: true };
+                }
+                cell.alignment = { vertical: "middle" };
+            });
+        }
+
+        function formatDate(value : any){
+            const date = new Date(value);            
+            const formatter = new Intl.DateTimeFormat("en-US", options);
+            const formattedDate = formatter.format(date);
+            const [month, day, year, time, amPm] = formattedDate.replaceAll(",","").split(" ");
+            return `${day}-${month}-${year} ${time} ${amPm}`;
+        }
+
+        const workbook = new Workbook();
+        const dfspSettlementDetail = workbook.addWorksheet("DFSPSettlementDetailReport");
+        
+        dfspSettlementDetail.properties.defaultColWidth = 35 ;
+        dfspSettlementDetail.properties.defaultRowHeight = 28;
+
+        const options: Intl.DateTimeFormatOptions = {
+            year: "numeric",
+            month: "short",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true, // Use 12-hour format
+        };
+
+        const settlementId = dfspSettlementDetail.addRow(["Settlement ID", detailReports[0].matrixId]);
+        addBordersToRow(settlementId);
+        const settlementDate = dfspSettlementDetail.addRow(["Settlement Created Date", formatDate(detailReports[0].settlementDate)]);
+        addBordersToRow(settlementDate);
+        const dfspId = dfspSettlementDetail.addRow(["DFSPID", participantId]);
+        addBordersToRow(dfspId);
+        const dfspName = dfspSettlementDetail.addRow(["DFSPName", detailReports[0].dpspName]);
+        addBordersToRow(dfspName);
+        const timeZoneOffset = dfspSettlementDetail.addRow(["TimeZoneOffset", "UTC±00:00"]);
+        addBordersToRow(timeZoneOffset);
+
+        dfspSettlementDetail.mergeCells("B1", "C1");
+        dfspSettlementDetail.mergeCells("B2", "C2");
+        dfspSettlementDetail.mergeCells("B3", "C3");
+        dfspSettlementDetail.mergeCells("B4", "C4");
+        dfspSettlementDetail.mergeCells("B5", "C5");
+
+        // Put empty rowsettlementInitiation
+        dfspSettlementDetail.addRow([]);
+        // Define the detail table fields
+        const details = dfspSettlementDetail.addRow(["Sender DFSP ID", "Sender DFSP Name", "Receiver DFSP ID", "Receiver DFSP Name", "Transfer ID", "Tx Type", 
+                        "Transaction Date", "Sender ID Type", "Sender ID", "Receiver ID Type", "Receiver ID", "Received Amount", "Sent Amount", "Fee", "Currency"]);
+        addBordersToRow(details);
+
+        // Populate the detail table with data
+        detailReports.forEach((dataRow: { payerFspId: string; payerParticipantName: string; payeeFspId: string; payeeParticipantName: any; transferId: any; transactionType: string; transactionDate:any;
+            payerIdType: any; payerIdentifier: any; payeeIdType: any; payeeIdentifier: any; receivedAmount: number; sentAmount: number; currency: string}) => {
+            const row = dfspSettlementDetail.addRow([
+                dataRow.payerFspId,
+                dataRow.payerParticipantName,
+                dataRow.payeeFspId,
+                dataRow.payeeParticipantName,
+                dataRow.transferId,
+
+                dataRow.transactionType,
+                formatDate(dataRow.transactionDate),
+                dataRow.payerIdType,
+                dataRow.payerIdentifier,
+                dataRow.payeeIdType,
+
+                dataRow.payeeIdentifier,
+                "",
+                "",
+                "-",
+                dataRow.currency
+            ]);
+
+            const transactionDateCell = row.getCell(7); 
+
+            const receivedAmountCell = row.getCell(12); 
+            receivedAmountCell.value = (dataRow.receivedAmount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+ 
+            const sentAmountCell = row.getCell(13); 
+            sentAmountCell.value = (dataRow.sentAmount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+           
+            addBordersToRow(row);
+
+            receivedAmountCell.alignment = { vertical:"middle",horizontal:"right" };
+            sentAmountCell.alignment = { vertical:"middle",horizontal:"right" };
+            transactionDateCell.alignment = { vertical:"middle",horizontal:"right" };
+        });
+
+        return workbook;
+    }
+
     async getDFSPSettlementDetail(secCtx: CallSecurityContext, participantId: string, matrixId: string): Promise<any> {
         this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_DFSP_SETTLEMENT_DETAIL_REPORT);
 
@@ -195,6 +344,8 @@ export class ReportingAggregate {
 
         return result;
     }
+
+
 
     async getDFSPSettlement(secCtx: CallSecurityContext, participantId: string, matrixId: string): Promise<any> {
         this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_DFSP_SETTLEMENT_REPORT);
