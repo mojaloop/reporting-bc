@@ -35,17 +35,13 @@
 
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { IReportingRepo } from "../types";
-import { AuditSecurityContext, IAuditClient, } from "@mojaloop/auditing-bc-public-types-lib";
+import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
 import {
     CallSecurityContext,
     ForbiddenError,
-    IAuthorizationClient,
-    MakerCheckerViolationError,
-    UnauthorizedError,
+    IAuthorizationClient
 } from "@mojaloop/security-bc-public-types-lib";
 import { Row, Workbook } from "exceljs";
-import * as fs from "fs";
-import { time } from "console";
 import { ReportingPrivileges } from "./privilege_names";
 
 export class ReportingAggregate {
@@ -131,28 +127,13 @@ export class ReportingAggregate {
         const workbook = new Workbook();
         const settlementInitiation = workbook.addWorksheet("SettlementInitiation");
 
-        const date = new Date(data[0].settlementCreatedDate);
-
-        const options: Intl.DateTimeFormatOptions = {
-            year: "numeric",
-            month: "short",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: true, // Use 12-hour format
-        };
-
-        const formatter = new Intl.DateTimeFormat("en-US", options);
-        const formattedDate = formatter.format(date);
-        // Split the formatted date string
-        const [month, day, year, time] = formattedDate.replaceAll(",","").split(" ");
-        // Reconstruct the date in the desired format
-        const finalFormattedDate = `${day}-${month}-${year} ${time}`;
+        function formatDatetoISOString(value : any){
+            return new Date(value).toISOString();        
+        }
 
         const settlementId = settlementInitiation.addRow(["Settlement ID", data[0].matrixId]);
         addBordersToRow(settlementId);
-        const settlementDate = settlementInitiation.addRow(["Settlement Created Date", finalFormattedDate]);
+        const settlementDate = settlementInitiation.addRow(["Settlement Created Date", formatDatetoISOString(data[0].settlementCreatedDate)]);
         addBordersToRow(settlementDate);
         const timeZoneOffset = settlementInitiation.addRow(["TimeZoneOffset", "UTC±00:00"]);
         addBordersToRow(timeZoneOffset);
@@ -162,8 +143,10 @@ export class ReportingAggregate {
         const details = settlementInitiation.addRow(["Participant", "Participant(Bank Identifier)", "Balance", "Settlement Transfer", "Currency"]);
         addBordersToRow(details);
 
+        type SettlementDateType = string | number | Date;
+
         // Populate the detail table with data
-        data.forEach((dataRow: { matrixId: string; settlementCreatedDate: string | number | Date; participantId: string; externalBankAccountName: string; externalBankAccountId: string; participantDebitBalance: any; participantCreditBalance: any; participantCurrencyCode: string; }) => {
+        data.forEach((dataRow: { matrixId: string; settlementCreatedDate: SettlementDateType; participantId: string; externalBankAccountName: string; externalBankAccountId: string; participantDebitBalance: any; participantCreditBalance: any; participantCurrencyCode: string; }) => {
             const row = settlementInitiation.addRow([
                 dataRow.participantId,
                 dataRow.externalBankAccountName + " " + dataRow.externalBankAccountId,
@@ -244,12 +227,8 @@ export class ReportingAggregate {
             });
         }
 
-        function formatDate(value : any){
-            const date = new Date(value);            
-            const formatter = new Intl.DateTimeFormat("en-US", options);
-            const formattedDate = formatter.format(date);
-            const [month, day, year, time, amPm] = formattedDate.replaceAll(",","").split(" ");
-            return `${day}-${month}-${year} ${time} ${amPm}`;
+        function formatDatetoISOString(value : any){
+            return new Date(value).toISOString();        
         }
 
         const workbook = new Workbook();
@@ -258,19 +237,9 @@ export class ReportingAggregate {
         dfspSettlementDetail.properties.defaultColWidth = 35 ;
         dfspSettlementDetail.properties.defaultRowHeight = 28;
 
-        const options: Intl.DateTimeFormatOptions = {
-            year: "numeric",
-            month: "short",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: true, // Use 12-hour format
-        };
-
         const settlementId = dfspSettlementDetail.addRow(["Settlement ID", detailReports[0].matrixId]);
         addBordersToRow(settlementId);
-        const settlementDate = dfspSettlementDetail.addRow(["Settlement Created Date", formatDate(detailReports[0].settlementDate)]);
+        const settlementDate = dfspSettlementDetail.addRow(["Settlement Created Date", formatDatetoISOString(detailReports[0].settlementDate)]);
         addBordersToRow(settlementDate);
         const dfspId = dfspSettlementDetail.addRow(["DFSPID", participantId]);
         addBordersToRow(dfspId);
@@ -303,7 +272,7 @@ export class ReportingAggregate {
                 dataRow.transferId,
 
                 dataRow.transactionType,
-                formatDate(dataRow.transactionDate),
+                formatDatetoISOString(dataRow.transactionDate),
                 dataRow.payerIdType,
                 dataRow.payerIdentifier,
                 dataRow.payeeIdType,
@@ -459,33 +428,18 @@ export class ReportingAggregate {
             },[]);
         }
 
+        function formatDatetoISOString(value : any){
+            return new Date(value).toISOString();        
+        }
+        
         const workbook = new Workbook();
         const dfspSettlement = workbook.addWorksheet("DFSPSettlementReport");
         dfspSettlement.properties.defaultColWidth = 25 ;
         dfspSettlement.properties.defaultRowHeight = 26;
 
-        const date = new Date(data[0].settlementDate);
-
-        const options: Intl.DateTimeFormatOptions = {
-            year: "numeric",
-            month: "short",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: true, // Use 12-hour format
-        };
-
-        const formatter = new Intl.DateTimeFormat("en-US", options);
-        const formattedDate = formatter.format(date);
-        // Split the formatted date string
-        const [month, day, year, time, amPm] = formattedDate.replaceAll(",","").split(" ");
-        // Reconstruct the date in the desired format
-        const finalFormattedDate = `${day}-${month}-${year} ${time} ${amPm}`;
-
         const settlementId = dfspSettlement.addRow(["Settlement ID", data[0].matrixId]);
         addBordersToRow(settlementId);
-        const settlementDate = dfspSettlement.addRow(["Settlement Created Date", finalFormattedDate]);
+        const settlementDate = dfspSettlement.addRow(["Settlement Created Date", formatDatetoISOString(data[0].settlementDate)]);
         addBordersToRow(settlementDate);
         const dfspId = dfspSettlement.addRow(["DFSPID", data[0].paramParticipantId]);
         addBordersToRow(dfspId);
