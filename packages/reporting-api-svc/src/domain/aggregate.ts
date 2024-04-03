@@ -157,7 +157,7 @@ export class ReportingAggregate {
 
             const balanceCell = row.getCell(4); // Get the specific cell you want to format (index starts from 1)
 
-            balanceCell.value = (dataRow.participantCreditBalance - dataRow.participantDebitBalance).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+            balanceCell.value = (dataRow.participantDebitBalance - dataRow.participantCreditBalance).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
             balanceCell.alignment = { horizontal: "right" }; // Apply alignment to the cell
 
             addBordersToRow(row);
