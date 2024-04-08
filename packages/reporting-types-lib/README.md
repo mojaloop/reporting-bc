@@ -1,5 +1,5 @@
-# Participants BC - Public Types
-Mojaloop vNext Typescript BC Reporting Types
+# Reporting BC - Public Types
+Mojaloop vNext Reporting BC Reporting Types
 
 ## Notes
 
