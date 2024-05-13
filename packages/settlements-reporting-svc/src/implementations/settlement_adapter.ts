@@ -70,7 +70,7 @@ export class SettlementsAdapter implements ISettlementServiceAdapter {
 			const authRequester: IAuthenticatedHttpRequester = new AuthenticatedHttpRequester(this._logger, this._authNSvcTokenUrl);
 			authRequester.setAppCredentials(this._clientId, this._clientSecret);
 
-			const url = new URL(`/matrix/${matrixId}/`, this._settlementSVCBaseUrl).toString();
+			const url = new URL(`/matrices/${matrixId}/`, this._settlementSVCBaseUrl).toString();
 			const resp = await authRequester.fetch(url,this._timeoutMs);
 
 			if (resp.status != 200) {
