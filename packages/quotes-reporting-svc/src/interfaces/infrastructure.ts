@@ -35,7 +35,7 @@
 "use strict";
 
 import { IParticipantReport, IBulkQuoteReport, IQuoteReport } from "@mojaloop/reporting-bc-types-lib";
-
+import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
 
 
 export interface IMongoDbQuotesReportingRepo {
@@ -74,8 +74,8 @@ export interface IQuotesServiceAdapter {
 }
 
 export interface IParticipantsServiceAdapter {
-    getParticipantInfo(fspId: string): Promise<IParticipantReport| null>;
-    getParticipantsInfo(fspIds: string[]): Promise<IParticipantReport[]|null>;
+    getParticipantInfo(fspId: string): Promise<IParticipant| null>;
+    getParticipantsInfo(fspIds: string[]): Promise<IParticipant[]|null>;
 }
 
 export interface IAccountLookupServiceAdapter {

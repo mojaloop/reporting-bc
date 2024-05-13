@@ -43,6 +43,8 @@ import {
 } from "@mojaloop/security-bc-public-types-lib";
 import { Row, Workbook } from "exceljs";
 import { ReportingPrivileges } from "./privilege_names";
+import { ParticipantFundsMovementTypes } from "@mojaloop/participant-bc-public-types-lib";
+import { ISettlementStatement, IFundsMovementsByCurrency, IFundsMovment } from "@mojaloop/reporting-bc-types-lib";
 
 export class ReportingAggregate {
     private _logger: ILogger;
@@ -559,6 +561,269 @@ export class ReportingAggregate {
 
             addBordersToRow(row);
             aggreateValue.alignment = { vertical:"middle",horizontal:"right" };
+        });
+
+        return workbook;
+    }
+
+    async getDFSPSettlementStatement(secCtx: CallSecurityContext, participantId: string, startDate: number, endDate:number, currencyCode:string): Promise<any> {
+        this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_DFSP_SETTLEMENT_REPORT);
+
+        const settlementStatements = await this._reportingRepo.getDFSPSettlementStatement(participantId, startDate, endDate, currencyCode);
+        const fundsMovements = await this._reportingRepo.getFundsMovements(participantId, startDate, currencyCode);
+        const fundsGroupByCurrency = this.groupFundsMovementsByCurrencyCode(fundsMovements);
+        
+        this.processSettlementStatement(fundsGroupByCurrency, settlementStatements);
+
+        if (settlementStatements === null || (Array.isArray(settlementStatements) && settlementStatements.length === 0))
+            throw new Error(
+                `DFSP Settlement Statement with participantId: ${participantId} not found.`
+            );
+        
+        return settlementStatements;
+    }
+
+    private processSettlementStatement(fundsGroupByCurrency: IFundsMovementsByCurrency, settlementStatements: ISettlementStatement[]) {
+
+            if (!settlementStatements || !Array.isArray(settlementStatements) || settlementStatements.length === 0) {
+                return;
+            }
+
+            this.calculateOpeningBalanceByCurrency(fundsGroupByCurrency, settlementStatements);
+            this.setFundsAmountsFromDescription(settlementStatements);
+            this.calculateStatementBalancesByCurrency(settlementStatements);
+    }
+
+    private calculateOpeningBalanceByCurrency(fundsGroupByCurrency: IFundsMovementsByCurrency, settlementStatement: ISettlementStatement[]) {
+
+        Object.entries(fundsGroupByCurrency).forEach(([currencyCode, currencyData]) => {
+                let openingAmount: number = 0;
+
+                for (const statement of settlementStatement) {
+                    if (statement.statementCurrencyCode === currencyCode) {
+                        for (const fundsMovement of currencyData) {
+                            const type = fundsMovement.type;
+                            if ( type === ParticipantFundsMovementTypes.OPERATOR_FUNDS_DEPOSIT ||
+                                 type === ParticipantFundsMovementTypes.MATRIX_SETTLED_AUTOMATIC_ADJUSTMENT_CREDIT ||
+                                 type === ParticipantFundsMovementTypes.OPERATOR_LIQUIDITY_ADJUSTMENT_CREDIT ) {
+                                    
+                                 openingAmount += Number(fundsMovement.amount);
+
+                            } else if ( type === ParticipantFundsMovementTypes.OPERATOR_FUNDS_WITHDRAWAL ||
+                                        type === ParticipantFundsMovementTypes.MATRIX_SETTLED_AUTOMATIC_ADJUSTMENT_DEBIT ||
+                                        type === ParticipantFundsMovementTypes.OPERATOR_LIQUIDITY_ADJUSTMENT_DEBIT ) {
+                                    
+                                        openingAmount -= Number(fundsMovement.amount);
+                            }
+                        }
+                   
+                        statement.openingAmount = openingAmount;
+                        openingAmount = 0;
+                    }
+                }
+        });
+    }
+
+    private groupFundsMovementsByCurrencyCode(fundsMovements: IFundsMovment[]) {
+
+        return fundsMovements.reduce((acc: IFundsMovementsByCurrency, fundsMovement: IFundsMovment) => {
+            const { currencyCode } = fundsMovement;
+            if (!acc[currencyCode]) {
+              acc[currencyCode] = [];
+            }
+
+            acc[currencyCode].push(fundsMovement);
+            return acc;
+        }, {});
+    }
+
+    private isFundIn(processDescription: string): boolean {
+        const fundsInDescriptions: ParticipantFundsMovementTypes[] = [
+            ParticipantFundsMovementTypes.OPERATOR_FUNDS_DEPOSIT,
+            ParticipantFundsMovementTypes.MATRIX_SETTLED_AUTOMATIC_ADJUSTMENT_CREDIT,
+            ParticipantFundsMovementTypes.OPERATOR_LIQUIDITY_ADJUSTMENT_CREDIT
+        ];
+    
+        return fundsInDescriptions.includes(processDescription as ParticipantFundsMovementTypes);
+    }
+	
+    private isFundOut(processDescription: string): boolean {
+        const fundsOutDescriptions: ParticipantFundsMovementTypes[] = [
+            ParticipantFundsMovementTypes.OPERATOR_FUNDS_WITHDRAWAL,
+            ParticipantFundsMovementTypes.MATRIX_SETTLED_AUTOMATIC_ADJUSTMENT_DEBIT,
+            ParticipantFundsMovementTypes.OPERATOR_LIQUIDITY_ADJUSTMENT_DEBIT
+        ];
+    
+        return fundsOutDescriptions.includes(processDescription as ParticipantFundsMovementTypes);
+    }
+    
+    private setFundsAmountsFromDescription(settlementStatement: ISettlementStatement[]) {
+        
+        for (const statement of settlementStatement) {
+            if(this.isFundIn(statement.processDescription)) {
+                statement.fundsInAmount = Number(statement.amount);
+                statement.fundsOutAmount = 0.00;
+            }
+            if(this.isFundOut(statement.processDescription)) {
+                statement.fundsOutAmount = Number(statement.amount);
+                statement.fundsInAmount = 0.00;
+            }
+        }
+    }
+
+    private calculateStatementBalancesByCurrency (settlementStatement: ISettlementStatement[]) {
+        
+        let previousCurrencyCode = null;
+        let balance = 0;
+
+        for (const statement of settlementStatement) {
+            const currencyCode = statement.statementCurrencyCode;
+
+            if (previousCurrencyCode !== currencyCode) {
+                previousCurrencyCode = currencyCode;
+                balance = statement.openingAmount || 0;
+            }
+
+            balance += statement.fundsInAmount || 0;
+            balance -= statement.fundsOutAmount || 0;
+
+            statement.balance = -balance;
+        }
+    }
+
+    async getDFSPSettlementStatementExport(secCtx: CallSecurityContext, participantId: string, startDate: number, endDate: number, currencyCode: string): Promise<Buffer> {
+        this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_SETTLEMENT_INITIATION_REPORT);
+
+        this._logger.debug("Get getDFSPSettlementStatementExport");
+
+        const settlementStatements = await this._reportingRepo.getDFSPSettlementStatement(participantId, startDate, endDate, currencyCode);
+        const fundsMovements = await this._reportingRepo.getFundsMovements(participantId, startDate, currencyCode);
+        const fundsGroupByCurrency = this.groupFundsMovementsByCurrencyCode(fundsMovements);
+        
+        this.processSettlementStatement(fundsGroupByCurrency, settlementStatements);
+        
+        if (settlementStatements === null || (Array.isArray(settlementStatements) && settlementStatements.length === 0)) 
+            throw new Error(
+                `DFSP Settlement Statement with participantId: ${participantId} not found.`
+            );
+
+        const workbook = await this.generateSettlementStatementExcelFile(settlementStatements, startDate, endDate, currencyCode);
+        return workbook.xlsx.writeBuffer();
+    }
+
+    async generateSettlementStatementExcelFile(data: any, startDate: number, endDate: number, currencyCode: string): Promise<any> {
+
+        // Function to add borders to a row
+        function addBordersToRow(row: Row) {
+            row.eachCell((cell) => {
+                cell.border = {
+                    top: { style: "thin" },
+                    right: { style: "thin" },
+                    bottom: { style: "thin" },
+                    left: { style: "thin" },
+                };
+                if (cell.value === "DFSP ID" ||
+                    cell.value === "DFSP Name" ||
+                    cell.value === "From Date" ||
+                    cell.value === "To Date" ||
+                    cell.value === "Currency" ||
+                    cell.value === "TimeZoneOffSet" ||
+                    cell.value === "Transfer Id" ||
+                    cell.value === "Date Time" ||
+                    cell.value === "Process Description" ||
+                    cell.value === "Funds In" ||
+                    cell.value === "Funds Out" ||
+                    cell.value === "Balance" ||
+                    cell.value === "Currency" ||
+                    cell.value === "Account Number") {
+                    cell.font = { bold: true };
+                }
+                cell.alignment = { vertical: "middle" };
+            });
+        }
+
+        function applyFontBold(cell:number | string) {
+            dfspSettlementStatement.getCell(cell).font = { bold: true };
+        }
+
+        function convertDecimalNumber(number: number) {
+          return number.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+        }
+
+        function formatDatetoISOString(value : any){
+            return new Date(value).toISOString().replace(/\.\d+Z$/, '+00:00');
+        }
+        
+        const workbook = new Workbook();
+        const dfspSettlementStatement = workbook.addWorksheet("DFSPSettlementStatementReport");
+        dfspSettlementStatement.properties.defaultColWidth = 40 ;
+        dfspSettlementStatement.properties.defaultRowHeight = 26;
+
+        const dfspId = dfspSettlementStatement.addRow(["DFSP ID", data[0].id]);
+        addBordersToRow(dfspId);
+
+        const dfspName = dfspSettlementStatement.addRow(["DFSPName", data[0].name]);
+        applyFontBold("A2");
+        addBordersToRow(dfspName);
+
+        const fromDate = dfspSettlementStatement.addRow(["From Date", formatDatetoISOString(startDate)]);
+        addBordersToRow(fromDate);
+
+        const toDate = dfspSettlementStatement.addRow(["To Date", formatDatetoISOString(endDate)]);
+        addBordersToRow(toDate);
+
+        const currency = dfspSettlementStatement.addRow(["Currency", currencyCode]);
+        addBordersToRow(currency);
+
+        const timeZoneOffset = dfspSettlementStatement.addRow(["TimeZoneOffset", "UTC±00:00"]);
+        applyFontBold("A6");
+        addBordersToRow(timeZoneOffset);
+
+        dfspSettlementStatement.mergeCells("B1", "C1");
+        dfspSettlementStatement.mergeCells("B2", "C2");
+        dfspSettlementStatement.mergeCells("B3", "C3");
+        dfspSettlementStatement.mergeCells("B4", "C4");
+        dfspSettlementStatement.mergeCells("B5", "C5");
+        dfspSettlementStatement.mergeCells("B6", "C6");
+               
+        // Put empty rowsettlementInitiation
+        dfspSettlementStatement.addRow([]);
+        // Define the detail table fields
+        const settlementStatement = dfspSettlementStatement.addRow(["Transfer Id", "Date Time", "Process Description", "Funds In", "Funds Out", "Balance", "Currency", "Account Number"]);
+       
+        addBordersToRow(settlementStatement);
+
+        // Populate the detail table with data
+        data.forEach((dataRow: { transferId: string; transactionDate: string; processDescription: string; fundsInAmount: number; fundsOutAmount: number; balance: number; statementCurrencyCode: string; accountNumber: string; }) => {
+            const row = dfspSettlementStatement.addRow([
+                dataRow.transferId,
+                "",
+                dataRow.processDescription,
+                "",
+                "",
+                "",
+                dataRow.statementCurrencyCode,    
+                dataRow.accountNumber
+            ]);
+
+            addBordersToRow(row);
+
+            const dateTime = row.getCell(2);
+            dateTime.value = formatDatetoISOString(dataRow.transactionDate);
+
+            const fundsInAmountCell = row.getCell(4);
+            fundsInAmountCell.value = convertDecimalNumber(dataRow.fundsInAmount);
+
+            const fundsOutAmountCell = row.getCell(5);
+            fundsOutAmountCell.value = convertDecimalNumber(dataRow.fundsOutAmount);
+
+            const balanceCell = row.getCell(6);
+            balanceCell.value = convertDecimalNumber(dataRow.balance);
+
+            dateTime.alignment = { vertical:"middle",horizontal:"right" };
+            fundsInAmountCell.alignment = { vertical:"middle",horizontal:"right" };
+            fundsOutAmountCell.alignment = { vertical:"middle",horizontal:"right" };
+            balanceCell.alignment = { vertical:"middle",horizontal:"right" };
         });
 
         return workbook;

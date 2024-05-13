@@ -37,6 +37,7 @@ import { IMongoDbParticipantReportingRepo } from "../types/mongodb_repo_interfac
 import {
     IParticipantReport
 } from "@mojaloop/reporting-bc-types-lib";
+import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
 import { ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import { Collection, MongoClient } from "mongodb";
 
@@ -109,13 +110,13 @@ export class MongoDbParticipantReportingRepo implements IMongoDbParticipantRepor
         this._logger.info("MongoDBParticipantsRepo - initialized");
     }
 
-    async create(participant: IParticipantReport): Promise<boolean> {
+    async create(participant: IParticipant): Promise<boolean> {
         const result = await this._collectionParticipant.insertOne(participant);
 
         return result.acknowledged;
     }
 
-    async store(participant: IParticipantReport): Promise<boolean> {
+    async store(participant: IParticipant): Promise<boolean> {
         const result = await this._collectionParticipant.updateOne(
             { id: participant.id },
             {

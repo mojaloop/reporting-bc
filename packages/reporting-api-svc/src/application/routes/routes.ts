@@ -58,6 +58,7 @@ export class ExpressRoutes extends BaseRoutes {
 
         this.mainRouter.get("/dfspSettlementDetail", this.getDFSPSettlementDetail.bind(this));
         this.mainRouter.get("/dfspSettlement", this.getDFSPSettlement.bind(this));
+        this.mainRouter.get("/dfspSettlementStatement", this.getDFSPSettlementStatement.bind(this));
     }
 
     private async getSettlementInitiationByMatrixId(req: express.Request, res: express.Response): Promise<void> {
@@ -150,6 +151,51 @@ export class ExpressRoutes extends BaseRoutes {
                         req.securityContext!,
                         participantId,
                         matrixId
+                    );
+                    res.send(fetchedJson);
+            }
+
+        } catch (err: any) {
+            this.logger.error(err);
+            res.status(500).json({
+                status: "error",
+                msg: err.message,
+            });
+        }
+    }
+
+    private async getDFSPSettlementStatement(req: express.Request, res: express.Response): Promise<void> {
+        const participantId = req.query.participantId as string;
+        const excelFormat = req.query.format && (req.query.format as string).toUpperCase() === "EXCEL" ? true : false;
+        const startDateStr = req.query.startDate as string || req.query.startdate as string;
+        const startDate = startDateStr ? parseInt(startDateStr) : undefined;
+        const endDateStr = req.query.endDate as string || req.query.enddate as string;
+        const endDate = endDateStr ? parseInt(endDateStr) : undefined;
+        const currencyCode = req.query.currencyCode as string;
+
+        this.logger.debug(`Fetching DFSP Settlement Statement data for ParticipantId: ${participantId}.`);
+
+        try {
+            if(!participantId || !startDate || !endDate || !currencyCode){
+                throw new Error("Invalid input parameters.");
+            }else if(excelFormat){
+                    const fetchedBuffer = await this.aggregate.getDFSPSettlementStatementExport(
+                        req.securityContext!,
+                        participantId,
+                        startDate,
+                        endDate,
+                        currencyCode
+                    );
+                    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                    res.setHeader("Content-Disposition", "attachment; filename=DFSPSettlementReport.xlsx");
+                    res.status(200).send(fetchedBuffer);
+            }else {
+                    const fetchedJson = await this.aggregate.getDFSPSettlementStatement(
+                        req.securityContext!,
+                        participantId,
+                        startDate,
+                        endDate,
+                        currencyCode
                     );
                     res.send(fetchedJson);
             }
