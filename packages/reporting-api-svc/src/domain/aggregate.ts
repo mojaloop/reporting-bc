@@ -389,12 +389,12 @@ export class ReportingAggregate {
 
         function formatNetPosition(netPosition: number) {
             return netPosition < 0
-                ? `(${netPosition.toString().replace("-", "")})`
+                ? `(${convertDecimalNumber(netPosition.toString().replace("-", ""))})`
                 : convertDecimalNumber(netPosition);
         }
 
-        function convertDecimalNumber(number: number) {
-          return number.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+        function convertDecimalNumber(number: number | string) {
+          return Number(number).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
         }
 
         function formatCommaSeparator(number: number) {
@@ -501,7 +501,7 @@ export class ReportingAggregate {
                 "",
                 "",
                 "",
-                formatNetPosition(dataRow.totalAmountReceived - dataRow.totalAmountSent),
+                "",
                 dataRow.currency
             ]);
 
@@ -524,6 +524,7 @@ export class ReportingAggregate {
             totalValueAllTransactions.value = convertDecimalNumber(dataRow.totalAmountSent + dataRow.totalAmountReceived);
 
             const netPositionVsEachDFSP = row.getCell(9);
+            netPositionVsEachDFSP.value = formatNetPosition(dataRow.totalAmountReceived - dataRow.totalAmountSent);
 
             addBordersToRow(row);
             totalSentCount.alignment = { vertical:"middle",horizontal:"right" };
