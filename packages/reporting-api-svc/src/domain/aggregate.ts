@@ -751,7 +751,7 @@ export class ReportingAggregate {
         }
 
         function formatDatetoISOString(value : any){
-            return new Date(value).toISOString().replace(/\.\d+Z$/, '+00:00');
+            return new Date(value).toISOString().replace(/\.\d+Z$/, "+00:00");
         }
         
         const workbook = new Workbook();

@@ -162,7 +162,7 @@ export interface IFundsMovementsByCurrency {
       amount: number;
       currencyCode: string;
     }[];
-};
+}
 
 export interface IFundsMovment {
     id: string;
