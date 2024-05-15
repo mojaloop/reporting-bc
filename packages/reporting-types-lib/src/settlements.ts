@@ -26,8 +26,8 @@
  ******/
 
  "use strict";
- import { ParticipantFundsMovementTypes } from "@mojaloop/participant-bc-public-types-lib";
 
+ import { FundsMovementTypes } from "./enums";
  export interface ICustomSettlementField {
     key: string;
     value: ICustomSettlementField | ICustomSettlementField[] | string | number;
@@ -142,19 +142,19 @@ export type BatchTransferSearchResults = SearchReults & {
     items: ISettlementBatchTransfer[];
 };
 export interface ISettlementStatement {
-    id: string,
-    dfspName:string,
-    transferId: string,
-    transactionDate: string,
-    processDescription: string,
-    amount: number, 
-    fundsInAmount:number, 
-    fundsOutAmount:number, 
-    balance: number,
-    openingAmount: number, 
-    statementCurrencyCode: string,
-    accountNumber: string, 
-    type: ParticipantFundsMovementTypes;
+    id: string;
+    dfspName:string;
+    transferId: string;
+    transactionDate: string;
+    processDescription: string;
+    amount: number;
+    fundsInAmount:number; 
+    fundsOutAmount:number; 
+    balance: number;
+    openingAmount: number;
+    statementCurrencyCode: string;
+    accountNumber: string;
+    type: FundsMovementTypes;
 }
 export interface IFundsMovementsByCurrency {
     [currencyCode: string]: {
@@ -166,7 +166,7 @@ export interface IFundsMovementsByCurrency {
 
 export interface IFundsMovment {
     id: string;
-    type: ParticipantFundsMovementTypes;
+    type: FundsMovementTypes;
     amount: number;
     currencyCode: string;
 }

@@ -43,8 +43,7 @@ import {
 } from "@mojaloop/security-bc-public-types-lib";
 import { Row, Workbook } from "exceljs";
 import { ReportingPrivileges } from "./privilege_names";
-import { ParticipantFundsMovementTypes } from "@mojaloop/participant-bc-public-types-lib";
-import { ISettlementStatement, IFundsMovementsByCurrency, IFundsMovment } from "@mojaloop/reporting-bc-types-lib";
+import { ISettlementStatement, IFundsMovementsByCurrency, IFundsMovment, FundsMovementTypes } from "@mojaloop/reporting-bc-types-lib";
 
 export class ReportingAggregate {
     private _logger: ILogger;
@@ -584,7 +583,7 @@ export class ReportingAggregate {
         return settlementStatements;
     }
 
-    private processSettlementStatement(fundsGroupByCurrency: IFundsMovementsByCurrency, settlementStatements: ISettlementStatement[]) {
+    private processSettlementStatement(fundsGroupByCurrency: IFundsMovementsByCurrency, settlementStatements: ISettlementStatement[]): void {
 
             if (!settlementStatements || !Array.isArray(settlementStatements) || settlementStatements.length === 0) {
                 return;
@@ -595,7 +594,7 @@ export class ReportingAggregate {
             this.calculateStatementBalancesByCurrency(settlementStatements);
     }
 
-    private calculateOpeningBalanceByCurrency(fundsGroupByCurrency: IFundsMovementsByCurrency, settlementStatement: ISettlementStatement[]) {
+    private calculateOpeningBalanceByCurrency(fundsGroupByCurrency: IFundsMovementsByCurrency, settlementStatement: ISettlementStatement[]): void {
 
         Object.entries(fundsGroupByCurrency).forEach(([currencyCode, currencyData]) => {
                 let openingAmount: number = 0;
@@ -604,15 +603,15 @@ export class ReportingAggregate {
                     if (statement.statementCurrencyCode === currencyCode) {
                         for (const fundsMovement of currencyData) {
                             const type = fundsMovement.type;
-                            if ( type === ParticipantFundsMovementTypes.OPERATOR_FUNDS_DEPOSIT ||
-                                 type === ParticipantFundsMovementTypes.MATRIX_SETTLED_AUTOMATIC_ADJUSTMENT_CREDIT ||
-                                 type === ParticipantFundsMovementTypes.OPERATOR_LIQUIDITY_ADJUSTMENT_CREDIT ) {
+                            if ( type === FundsMovementTypes.OPERATOR_FUNDS_DEPOSIT ||
+                                 type === FundsMovementTypes.MATRIX_SETTLED_AUTOMATIC_ADJUSTMENT_CREDIT ||
+                                 type === FundsMovementTypes.OPERATOR_LIQUIDITY_ADJUSTMENT_CREDIT ) {
                                     
                                  openingAmount += Number(fundsMovement.amount);
 
-                            } else if ( type === ParticipantFundsMovementTypes.OPERATOR_FUNDS_WITHDRAWAL ||
-                                        type === ParticipantFundsMovementTypes.MATRIX_SETTLED_AUTOMATIC_ADJUSTMENT_DEBIT ||
-                                        type === ParticipantFundsMovementTypes.OPERATOR_LIQUIDITY_ADJUSTMENT_DEBIT ) {
+                            } else if ( type === FundsMovementTypes.OPERATOR_FUNDS_WITHDRAWAL ||
+                                        type === FundsMovementTypes.MATRIX_SETTLED_AUTOMATIC_ADJUSTMENT_DEBIT ||
+                                        type === FundsMovementTypes.OPERATOR_LIQUIDITY_ADJUSTMENT_DEBIT ) {
                                     
                                         openingAmount -= Number(fundsMovement.amount);
                             }
@@ -625,7 +624,7 @@ export class ReportingAggregate {
         });
     }
 
-    private groupFundsMovementsByCurrencyCode(fundsMovements: IFundsMovment[]) {
+    private groupFundsMovementsByCurrencyCode(fundsMovements: IFundsMovment[]): IFundsMovementsByCurrency {
 
         return fundsMovements.reduce((acc: IFundsMovementsByCurrency, fundsMovement: IFundsMovment) => {
             const { currencyCode } = fundsMovement;
@@ -639,26 +638,26 @@ export class ReportingAggregate {
     }
 
     private isFundIn(processDescription: string): boolean {
-        const fundsInDescriptions: ParticipantFundsMovementTypes[] = [
-            ParticipantFundsMovementTypes.OPERATOR_FUNDS_DEPOSIT,
-            ParticipantFundsMovementTypes.MATRIX_SETTLED_AUTOMATIC_ADJUSTMENT_CREDIT,
-            ParticipantFundsMovementTypes.OPERATOR_LIQUIDITY_ADJUSTMENT_CREDIT
+        const fundsInDescriptions: FundsMovementTypes[] = [
+            FundsMovementTypes.OPERATOR_FUNDS_DEPOSIT,
+            FundsMovementTypes.MATRIX_SETTLED_AUTOMATIC_ADJUSTMENT_CREDIT,
+            FundsMovementTypes.OPERATOR_LIQUIDITY_ADJUSTMENT_CREDIT
         ];
     
-        return fundsInDescriptions.includes(processDescription as ParticipantFundsMovementTypes);
+        return fundsInDescriptions.includes(processDescription as FundsMovementTypes);
     }
 	
     private isFundOut(processDescription: string): boolean {
-        const fundsOutDescriptions: ParticipantFundsMovementTypes[] = [
-            ParticipantFundsMovementTypes.OPERATOR_FUNDS_WITHDRAWAL,
-            ParticipantFundsMovementTypes.MATRIX_SETTLED_AUTOMATIC_ADJUSTMENT_DEBIT,
-            ParticipantFundsMovementTypes.OPERATOR_LIQUIDITY_ADJUSTMENT_DEBIT
+        const fundsOutDescriptions: FundsMovementTypes[] = [
+            FundsMovementTypes.OPERATOR_FUNDS_WITHDRAWAL,
+            FundsMovementTypes.MATRIX_SETTLED_AUTOMATIC_ADJUSTMENT_DEBIT,
+            FundsMovementTypes.OPERATOR_LIQUIDITY_ADJUSTMENT_DEBIT
         ];
     
-        return fundsOutDescriptions.includes(processDescription as ParticipantFundsMovementTypes);
+        return fundsOutDescriptions.includes(processDescription as FundsMovementTypes);
     }
     
-    private setFundsAmountsFromDescription(settlementStatement: ISettlementStatement[]) {
+    private setFundsAmountsFromDescription(settlementStatement: ISettlementStatement[]): void {
         
         for (const statement of settlementStatement) {
             if(this.isFundIn(statement.processDescription)) {
@@ -672,7 +671,7 @@ export class ReportingAggregate {
         }
     }
 
-    private calculateStatementBalancesByCurrency (settlementStatement: ISettlementStatement[]) {
+    private calculateStatementBalancesByCurrency (settlementStatement: ISettlementStatement[]): void {
         
         let previousCurrencyCode = null;
         let balance = 0;
@@ -763,7 +762,7 @@ export class ReportingAggregate {
         const dfspId = dfspSettlementStatement.addRow(["DFSP ID", data[0].id]);
         addBordersToRow(dfspId);
 
-        const dfspName = dfspSettlementStatement.addRow(["DFSPName", data[0].name]);
+        const dfspName = dfspSettlementStatement.addRow(["DFSP Name", data[0].name]);
         applyFontBold("A2");
         addBordersToRow(dfspName);
 

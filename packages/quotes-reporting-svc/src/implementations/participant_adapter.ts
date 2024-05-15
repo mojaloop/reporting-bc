@@ -42,7 +42,6 @@ import { ParticipantsHttpClient } from "@mojaloop/participants-bc-client-lib";
 import { IAuthenticatedHttpRequester } from "@mojaloop/security-bc-public-types-lib";
 import { IParticipantsServiceAdapter } from "../interfaces/infrastructure";
 import { IParticipantReport } from "@mojaloop/reporting-bc-types-lib";
-import { IParticipant } from "@mojaloop/participant-bc-public-types-lib";
 
 export class ParticipantAdapter implements IParticipantsServiceAdapter {
 	private readonly _logger: ILogger;
@@ -66,7 +65,7 @@ export class ParticipantAdapter implements IParticipantsServiceAdapter {
 		this._externalParticipantClient = new ParticipantsHttpClient(this._logger, this._clientBaseUrl, this._authRequester, this._timeoutMs);
 	}
 
-	async getParticipantInfo(fspId: string): Promise<IParticipant | null> {
+	async getParticipantInfo(fspId: string): Promise<IParticipantReport | null> {
 		try {
 			const result = await this._externalParticipantClient.getParticipantById(fspId);
 
@@ -77,7 +76,7 @@ export class ParticipantAdapter implements IParticipantsServiceAdapter {
 		}
 	}
 
-	async getParticipantsInfo(fspIds: string[]): Promise<IParticipant[] | null> {
+	async getParticipantsInfo(fspIds: string[]): Promise<IParticipantReport[] | null> {
 		try {
 			const participants = await this._externalParticipantClient.getParticipantsByIds(fspIds);
 
