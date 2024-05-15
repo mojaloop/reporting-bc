@@ -169,7 +169,7 @@ export class ReportingAggregate {
     }
 
     async getDFSPSettlementDetailExport(secCtx: CallSecurityContext, participantId: string, matrixId: string): Promise<Buffer> {
-        this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_SETTLEMENT_INITIATION_REPORT);
+        this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_DFSP_SETTLEMENT_DETAIL_REPORT);
 
         this._logger.debug("Get DFSPSettlementDetailExport");
 
@@ -330,7 +330,7 @@ export class ReportingAggregate {
     }
 
     async getDFSPSettlementExport(secCtx: CallSecurityContext, participantId: string, matrixId: string): Promise<Buffer> {
-        this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_SETTLEMENT_INITIATION_REPORT);
+        this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_DFSP_SETTLEMENT_REPORT);
 
         this._logger.debug("Get getDFSPSettlementExport");
 
@@ -567,7 +567,7 @@ export class ReportingAggregate {
     }
 
     async getDFSPSettlementStatement(secCtx: CallSecurityContext, participantId: string, startDate: number, endDate:number, currencyCode:string): Promise<any> {
-        this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_DFSP_SETTLEMENT_REPORT);
+        this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_DFSP_SETTLEMENT_STATEMENT_REPORT);
 
         const settlementStatements = await this._reportingRepo.getDFSPSettlementStatement(participantId, startDate, endDate, currencyCode);
         const fundsMovements = await this._reportingRepo.getFundsMovements(participantId, startDate, currencyCode);
@@ -692,7 +692,7 @@ export class ReportingAggregate {
     }
 
     async getDFSPSettlementStatementExport(secCtx: CallSecurityContext, participantId: string, startDate: number, endDate: number, currencyCode: string): Promise<Buffer> {
-        this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_SETTLEMENT_INITIATION_REPORT);
+        this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_DFSP_SETTLEMENT_STATEMENT_REPORT);
 
         this._logger.debug("Get getDFSPSettlementStatementExport");
 
