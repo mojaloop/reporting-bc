@@ -37,7 +37,6 @@
 import { IParticipantReport, IBulkQuoteReport, IQuoteReport } from "@mojaloop/reporting-bc-types-lib";
 
 
-
 export interface IMongoDbQuotesReportingRepo {
     init(): Promise<void>;
 

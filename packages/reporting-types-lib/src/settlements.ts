@@ -27,6 +27,7 @@
 
  "use strict";
 
+ import { FundsMovementTypes } from "./enums";
  export interface ICustomSettlementField {
     key: string;
     value: ICustomSettlementField | ICustomSettlementField[] | string | number;
@@ -140,3 +141,32 @@ export type SearchReults = {
 export type BatchTransferSearchResults = SearchReults & {
     items: ISettlementBatchTransfer[];
 };
+export interface ISettlementStatement {
+    id: string;
+    dfspName:string;
+    transferId: string;
+    transactionDate: string;
+    processDescription: string;
+    amount: number;
+    fundsInAmount:number; 
+    fundsOutAmount:number; 
+    balance: number;
+    openingAmount: number;
+    statementCurrencyCode: string;
+    accountNumber: string;
+    type: FundsMovementTypes;
+}
+export interface IFundsMovementsByCurrency {
+    [currencyCode: string]: {
+      type: string;
+      amount: number;
+      currencyCode: string;
+    }[];
+}
+
+export interface IFundsMovment {
+    id: string;
+    type: FundsMovementTypes;
+    amount: number;
+    currencyCode: string;
+}

@@ -36,7 +36,6 @@
 import {
     IParticipantReport
 } from "@mojaloop/reporting-bc-types-lib";
-
 export interface IMongoDbParticipantReportingRepo{
     init(): Promise<void>;
       

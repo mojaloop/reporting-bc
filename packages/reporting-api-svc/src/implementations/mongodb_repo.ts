@@ -44,9 +44,11 @@ export class MongoReportingRepo implements IReportingRepo {
     private readonly _dbName: string;
     private readonly _colTransfers = "transfers";
     private readonly _colMatrices = "matrices";
+    private readonly _colParticipant = "participant";
     private mongoClient: MongoClient;
     private transfers: Collection;
     private matrices: Collection;
+    private participant: Collection;
 
     constructor(
         logger: ILogger,
@@ -66,6 +68,7 @@ export class MongoReportingRepo implements IReportingRepo {
             // Get the collections
             this.transfers = this.mongoClient.db(this._dbName).collection(this._colTransfers);
             this.matrices = this.mongoClient.db(this._dbName).collection(this._colMatrices);
+            this.participant = this.mongoClient.db(this._dbName).collection(this._colParticipant);
 
         } catch (e: any) {
             this._logger.error(`Unable to connect to the database: ${(e as Error).message}`);
@@ -387,6 +390,154 @@ export class MongoReportingRepo implements IReportingRepo {
             return result;
         } catch (e: unknown) {
             this._logger.error(e, `getDFSPSettlement: error getting data for participantId: ${participantId} and matrixId: ${matrixId} - ${e}`);
+            return Promise.reject(e);
+        }
+    }
+
+    async getDFSPSettlementStatement(participantId: string, startDate: number, endDate: number, currencyCode:string): Promise<any> {
+        try {
+            this._logger.info("Get getDFSPSettlementStatement");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const filter: any = {
+                $and: []
+            };
+            
+            if (participantId) {
+                filter.$and.push({ "id": participantId });
+            }
+            if (startDate) {
+                filter.$and.push({ "fundsMovements.approvedDate": { $gte: startDate } });
+            }
+            if (endDate) {
+                filter.$and.push({ "fundsMovements.approvedDate": { $lte: endDate } });
+            }
+            
+            if (currencyCode && currencyCode !=="ALL") {
+                filter.$and.push({ "fundsMovements.currencyCode": currencyCode });
+            }
+            
+            filter.$and.push({ "fundsMovements.requestState": "APPROVED" });
+            
+            const query = [
+                {
+                    $match: {
+                        id: participantId
+                    }
+                },
+                {
+                    $unwind: "$fundsMovements"
+                },
+                {
+                    $match: filter.$and.length > 0 ? { $and: filter.$and } : {}
+                },
+                {
+                    $project: {
+                        id: 1,
+                        name:1,
+                        fundsMovements: 1,
+                        participantAccounts: {
+                            $arrayElemAt: [
+                              {
+                                $filter: {
+                                  input: "$participantAccounts",
+                                  as: "account",
+                                  cond: {
+                                    $and: [
+                                      { $eq: ["$$account.currencyCode", "$fundsMovements.currencyCode"] },
+                                      { $eq: ["$$account.type", "SETTLEMENT"] }
+                                    ]
+                                  }
+                                }
+                              },
+                              0
+                            ]
+                        },
+                        _id: 0
+                    }
+                },
+                {
+                    $project: {
+                      "id": 1,
+                      "name": 1,
+                      "transferId": "$fundsMovements.transferId",
+                      "transactionDate": "$fundsMovements.approvedDate",
+                      "processDescription": "$fundsMovements.type",
+                      "amount": "$fundsMovements.amount",
+                      "statementCurrencyCode": "$fundsMovements.currencyCode",
+                      "accountNumber": "$participantAccounts.id",
+                    }
+                },
+                {
+                    $sort: { "statementCurrencyCode": 1 }
+                }
+            ];
+            
+            const result = await this.participant.aggregate(query).toArray().catch((e: unknown) => {
+                this._logger.error(`Unable to get DFSPSettlementStatement: ${(e as Error).message}`);
+                throw new Error(`Unable to get DFSPSettlementStatement: ${(e as Error).message}`);
+            });
+
+            return result;
+        } catch (e: unknown) {
+            this._logger.error(e, `getDFSPSettlementStatement for : ${participantId} , ${startDate} and ${endDate} - ${e}`);
+            return Promise.reject(e);
+        }
+    }
+
+    async getFundsMovements(participantId: string, startDate: number, currencyCode: string): Promise<any> {
+        try {
+            this._logger.info("Get getFundsMovements");
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const filter: any = {
+                $and: []
+            };
+            
+            if (participantId) {
+                filter.$and.push({ "id": participantId });
+            }
+            if (startDate) {
+                filter.$and.push({ "fundsMovements.approvedDate": { $lte: startDate } });
+            }
+            
+            if (currencyCode && currencyCode !=="ALL") {
+                filter.$and.push({ "fundsMovements.currencyCode": currencyCode });
+            }
+            
+            filter.$and.push({ "fundsMovements.requestState": "APPROVED" });
+            
+            const query = [
+                {
+                    $match: {
+                        id: participantId
+                    }
+                },
+                {
+                    $unwind: "$fundsMovements"
+                },
+                {
+                    $match: filter.$and.length > 0 ? { $and: filter.$and } : {}
+                },
+                {
+                    $project: {
+                        "type": "$fundsMovements.type",
+                        "amount": "$fundsMovements.amount",
+                        "currencyCode":"$fundsMovements.currencyCode",
+                        _id: 0,
+                    }
+                },
+                {
+                    $sort: { "currencyCode": 1 }
+                }
+            ];
+            
+            const result = await this.participant.aggregate(query).toArray().catch((e: unknown) => {
+                this._logger.error(`Unable to get fundsMovements: ${(e as Error).message}`);
+                throw new Error(`Unable to get fundsMovements: ${(e as Error).message}`);
+            });
+
+            return result;
+        } catch (e: unknown) {
+            this._logger.error(e, `getAllFundsMovement for : ${participantId} , ${startDate} - ${e}`);
             return Promise.reject(e);
         }
     }
