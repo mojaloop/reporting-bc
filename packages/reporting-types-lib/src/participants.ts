@@ -28,11 +28,12 @@
  --------------
 ******/
 "use strict";
+import { ApprovalRequestState, ParticipantChangeTypes } from "./enums";
 
 export declare interface IParticipantReport {
     id: string;
     name: string;
-    type: "HUB" | "DFSP";
+    type: "HUB" | "DFSP" | "FXP";
     isActive: boolean;
     description: string;
 
@@ -67,10 +68,12 @@ export declare interface IParticipantReport {
         allowedSourceIpId: string | null;
         createdBy: string;
         createdDate: number;
-        approved: boolean;
+        requestState: ApprovalRequestState;
         approvedBy: string | null;
         approvedDate: number | null;
-        requestType: "ADD_SOURCE_IP" | "CHANGE_SOURCE_IP";
+        rejectedBy: string | null;
+        rejectedDate: number | null;
+        requestType: "ADD_SOURCE_IP" | "CHANGE_SOURCE_IP"
     }[];
 
     participantEndpoints: {
@@ -98,9 +101,11 @@ export declare interface IParticipantReport {
         externalBankAccountName: string | null;
         createdBy: string;
         createdDate: number;
-        approved: boolean;
+        requestState: ApprovalRequestState;
         approvedBy: string | null;
         approvedDate: number | null;
+        rejectedBy: string | null;
+        rejectedDate: number | null;
         requestType: "ADD_ACCOUNT" | "CHANGE_ACCOUNT_BANK_DETAILS";
     }[];
 
@@ -108,9 +113,11 @@ export declare interface IParticipantReport {
         id: string;
         createdBy: string;
         createdDate: number;
-        approved: boolean;
+        requestState: ApprovalRequestState;
         approvedBy: string | null;
         approvedDate: number | null;
+        rejectedBy: string | null;
+        rejectedDate: number | null;
         type: "OPERATOR_FUNDS_DEPOSIT"| "OPERATOR_FUNDS_WITHDRAWAL"| "MATRIX_SETTLED_AUTOMATIC_ADJUSTMENT_CREDIT" 
                | "MATRIX_SETTLED_AUTOMATIC_ADJUSTMENT_DEBIT"| "OPERATOR_LIQUIDITY_ADJUSTMENT_CREDIT"| "OPERATOR_LIQUIDITY_ADJUSTMENT_DEBIT";
         currencyCode: string;
@@ -120,14 +127,7 @@ export declare interface IParticipantReport {
         note: string | null;
     }[];
     changeLog: {
-        changeType: "CREATE"|"APPROVE"|"ACTIVATE"|"DEACTIVATE"|"ADD_ACCOUNT_REQUEST"| "ACCOUNT_CHANGE_REQUEST_APPROVED"|"CHANGE_ACCOUNT_BANK_DETAILS_REQUEST"
-            | "ADD_ACCOUNT"|"CHANGE_ACCOUNT_BANK_DETAILS"|"REMOVE_ACCOUNT"|"ADD_SOURCE_IP_REQUEST"|"CHANGE_SOURCE_IP_REQUEST"|"REMOVE_SOURCE_IP_REQUEST"
-            | "APPROVE_SOURCE_IP_REQUEST"|"ADD_SOURCE_IP"|"CHANGE_SOURCE_IP"|"REMOVE_SOURCE_IP"|"ADD_ENDPOINT"|"REMOVE_ENDPOINT"|"CHANGE_ENDPOINT"
-            | "OPERATOR_FUNDS_DEPOSIT" | "OPERATOR_FUNDS_WITHDRAWAL" | "MATRIX_SETTLED_AUTOMATIC_ADJUSTMENT_CREDIT" 
-            | "MATRIX_SETTLED_AUTOMATIC_ADJUSTMENT_DEBIT"| "OPERATOR_LIQUIDITY_ADJUSTMENT_CREDIT"| "OPERATOR_LIQUIDITY_ADJUSTMENT_DEBIT"  
-            | "NDC_CHANGE"|"NDC_RECALCULATED"| "ADD_CONTACT_INFO_REQUEST"| "CHANGE_CONTACT_INFO_REQUEST"
-            | "REMOVE_CONTACT_INFO_REQUEST"|"APPROVE_CONTACT_INFO_REQUEST"|"ADD_CONTACT_INFO"|"CHANGE_CONTACT_INFO"|"REMOVE_CONTACT_INFO"
-            | "ENABLE_PARTICIPANT"|"DISABLE_PARTICIPANT"|"CHANGE_PARTICIPANT_STATUS_REQUEST"|"APPROVE_PARTICIPANT_STATUS_REQUEST";
+        changeType:ParticipantChangeTypes;
         user: string;
         timestamp: number;
         notes: string | null;
@@ -143,7 +143,6 @@ export declare interface IParticipantReport {
         id: string;
         createdBy: string;
         createdDate: number;
-        approved: boolean;
         approvedBy: string | null;
         approvedDate: number | null;
         currencyCode: string;
@@ -170,7 +169,6 @@ export declare interface IParticipantReport {
         contactInfoId: string | null;
         createdBy: string;
         createdDate: number;
-        approved: boolean;
         approvedBy: string | null;
         approvedDate: number | null;
         requestType: "ADD_PARTICIPANT_CONTACT_INFO" | "CHANGE_PARTICIPANT_CONTACT_INFO";
@@ -181,9 +179,12 @@ export declare interface IParticipantReport {
         isActive: boolean;
         createdBy: string;
         createdDate: number;
-        approved: boolean;
+        requestState: ApprovalRequestState;
+        
         approvedBy: string | null;
         approvedDate: number | null;
+        rejectedBy: string | null;
+        rejectedDate: number | null;
         requestType: "CHANGE_PARTICIPANT_STATUS";
     }[];
   }
