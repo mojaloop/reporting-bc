@@ -47,6 +47,10 @@ export const ReportingPrivilegesDefinition = [
         privId: ReportingPrivileges.REPORTING_VIEW_DFSP_SETTLEMENT_REPORT,
         labelName: "View DFSP Settlement Report",
         description: "Allows for the retrieval of DFSP settlement report"
+    }, {
+        privId: ReportingPrivileges.REPORTING_VIEW_DFSP_SETTLEMENT_STATEMENT_REPORT,
+        labelName: "View DFSP Settlement Statement Report",
+        description: "Allows for the retrieval of DFSP settlement statement report"
     }
 ];
  
