@@ -52,6 +52,9 @@ import { ReportingPrivilegesDefinition } from "./privileges";
 import { ReportingAggregate } from "../domain/aggregate";
 import { existsSync } from "fs";
 import {MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import { DefaultConfigProvider, IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
+import { GetReportingConfigSet } from "./configset";
+import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
 
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -109,12 +112,14 @@ export class Service {
     static auditClient: IAuditClient;
     static authorizationClient: IAuthorizationClient;
     static aggregate: ReportingAggregate;
+    static configClient: IConfigurationClient;
 
     static async start(
         logger?: ILogger,
         auditClient?: IAuditClient,
         authorizationClient?: IAuthorizationClient,
-        reportingRepo?: IReportingRepo
+        reportingRepo?: IReportingRepo,
+        configProvider?: IConfigProvider,
     ): Promise<void> {
         console.log(`Service starting with PID: ${process.pid}`);
 
@@ -134,6 +139,23 @@ export class Service {
             await (logger as KafkaLogger).init();
         }
         globalLogger = this.logger = logger;
+
+        // start config client - this is not mockable (can use STANDALONE MODE if desired)
+        if (!configProvider) {
+			// use default url from PLATFORM_CONFIG_CENTRAL_URL env var
+			const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+
+			const messageConsumer = new MLKafkaJsonConsumer({
+				kafkaBrokerList: KAFKA_URL,
+				kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
+			}, logger.createChild("configClient.consumer"));
+			configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
+		}
+        this.configClient = GetReportingConfigSet(configProvider, BC_NAME, APP_NAME, APP_VERSION);
+        await this.configClient.init();
+        await this.configClient.bootstrap(true);
+        await this.configClient.fetch();
 
         // start auditClient
         if (!auditClient) {
