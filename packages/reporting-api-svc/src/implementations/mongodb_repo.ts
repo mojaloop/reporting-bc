@@ -464,7 +464,7 @@ export class MongoReportingRepo implements IReportingRepo {
                       "processDescription": "$fundsMovements.type",
                       "amount": "$fundsMovements.amount",
                       "statementCurrencyCode": "$fundsMovements.currencyCode",
-                      "accountNumber": "$participantAccounts.id",
+                      "accountNumber": "$participantAccounts.externalBankAccountId",
                     }
                 },
                 {
