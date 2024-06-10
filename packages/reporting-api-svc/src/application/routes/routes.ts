@@ -64,13 +64,15 @@ export class ExpressRoutes extends BaseRoutes {
     private async getSettlementInitiationByMatrixId(req: express.Request, res: express.Response): Promise<void> {
         const id = req.params["id"] ?? null;
         const excelFormat = req.query.format && (req.query.format as string).toUpperCase() === "EXCEL" ? true : false;
+        const timeZoneOffset = req.query.timeZoneOffset as string;
         this.logger.debug(`Fetching Settlement Initiation data for MatrixId: [${id}].`);
 
         try {
             if(excelFormat){
                 const fetchedBuffer = await this.aggregate.getSettlementInitiationByMatrixIdExport(
                     req.securityContext!,
-                    id
+                    id,
+                    timeZoneOffset
                 );
                 res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
                 res.setHeader("Content-Disposition", "attachment; filename=settlementInitiation.xlsx");
@@ -95,6 +97,7 @@ export class ExpressRoutes extends BaseRoutes {
         const participantId = req.query.participantId as string;
 		const matrixId = req.query.matrixId as string;
         const excelFormat = req.query.format && (req.query.format as string).toUpperCase() === "EXCEL" ? true : false;
+        const timeZoneOffset = req.query.timeZoneOffset as string;
 
         this.logger.debug(`Fetching DFSP Settlement Detail data for ParticipantId: ${participantId} and MatrixId: ${matrixId}.`);
 
@@ -105,7 +108,8 @@ export class ExpressRoutes extends BaseRoutes {
                     const fetchedBuffer = await this.aggregate.getDFSPSettlementDetailExport(
                         req.securityContext!,
                         participantId,
-                        matrixId
+                        matrixId,
+                        timeZoneOffset
                     );
                     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
                     res.setHeader("Content-Disposition", "attachment; filename=DFSPSettlementDetailReport.xlsx");
@@ -131,6 +135,7 @@ export class ExpressRoutes extends BaseRoutes {
         const participantId = req.query.participantId as string;
 		const matrixId = req.query.matrixId as string;
         const excelFormat = req.query.format && (req.query.format as string).toUpperCase() === "EXCEL" ? true : false;
+        const timeZoneOffset = req.query.timeZoneOffset as string;
 
         this.logger.debug(`Fetching DFSP Settlement data for ParticipantId: ${participantId} and MatrixId: ${matrixId}.`);
 
@@ -141,7 +146,8 @@ export class ExpressRoutes extends BaseRoutes {
                     const fetchedBuffer = await this.aggregate.getDFSPSettlementExport(
                         req.securityContext!,
                         participantId,
-                        matrixId
+                        matrixId,
+                        timeZoneOffset
                     );
                     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
                     res.setHeader("Content-Disposition", "attachment; filename=DFSPSettlementReport.xlsx");
@@ -172,6 +178,7 @@ export class ExpressRoutes extends BaseRoutes {
         const endDateStr = req.query.endDate as string || req.query.enddate as string;
         const endDate = endDateStr ? parseInt(endDateStr) : undefined;
         const currencyCode = req.query.currencyCode as string;
+        const timeZoneOffset = req.query.timeZoneOffset as string;
 
         this.logger.debug(`Fetching DFSP Settlement Statement data for ParticipantId: ${participantId}.`);
 
@@ -184,7 +191,8 @@ export class ExpressRoutes extends BaseRoutes {
                         participantId,
                         startDate,
                         endDate,
-                        currencyCode
+                        currencyCode,
+                        timeZoneOffset
                     );
                     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
                     res.setHeader("Content-Disposition", "attachment; filename=DFSPSettlementReport.xlsx");
