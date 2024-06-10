@@ -44,7 +44,7 @@ import {
 import { Row, Workbook } from "exceljs";
 import { ReportingPrivileges } from "./privilege_names";
 import { ISettlementStatement, IFundsMovementsByCurrency, IFundsMovment, FundsMovementTypes } from "@mojaloop/reporting-bc-types-lib";
-
+import moment from "moment-timezone";
 export class ReportingAggregate {
     private _logger: ILogger;
     private _auditClient: IAuditClient;
@@ -85,7 +85,7 @@ export class ReportingAggregate {
         return result;
     }
 
-    async getSettlementInitiationByMatrixIdExport(secCtx: CallSecurityContext, id: string): Promise<Buffer> {
+    async getSettlementInitiationByMatrixIdExport(secCtx: CallSecurityContext, id: string, timeZoneOffset: string): Promise<Buffer> {
         this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_SETTLEMENT_INITIATION_REPORT);
 
         this._logger.debug("Get settlementInitiationbyMatrixIdExport");
@@ -96,11 +96,11 @@ export class ReportingAggregate {
                 `Settlement matrix with ID: '${id}' not found.`
             );
 
-        const workbook = await this.generateExcelFile(result);
+        const workbook = await this.generateExcelFile(result, timeZoneOffset);
         return workbook.xlsx.writeBuffer();
     }
 
-    async generateExcelFile(data: any): Promise<any> {
+    async generateExcelFile(data: any, timeZoneOffset: string): Promise<any> {
 
         // Function to add borders to a row
         function addBordersToRow(row: Row) {
@@ -128,16 +128,13 @@ export class ReportingAggregate {
         const workbook = new Workbook();
         const settlementInitiation = workbook.addWorksheet("SettlementInitiation");
 
-        function formatDatetoISOString(value : any){
-            return new Date(value).toISOString();        
-        }
-
         const settlementId = settlementInitiation.addRow(["Settlement ID", data[0].matrixId]);
         addBordersToRow(settlementId);
-        const settlementDate = settlementInitiation.addRow(["Settlement Created Date", formatDatetoISOString(data[0].settlementCreatedDate)]);
+        const settlementDate = settlementInitiation.addRow(["Settlement Created Date", this.utcToFormattedLocalTime(data[0].settlementCreatedDate, timeZoneOffset)]);
         addBordersToRow(settlementDate);
-        const timeZoneOffset = settlementInitiation.addRow(["TimeZoneOffset", "UTC±00:00"]);
-        addBordersToRow(timeZoneOffset);
+
+        const userLocalTimeZoneOffset = settlementInitiation.addRow(["TimeZoneOffset", timeZoneOffset]);
+        addBordersToRow(userLocalTimeZoneOffset);
         // Put empty row
         settlementInitiation.addRow(["", ""]);
         // Define the detail table fields
@@ -168,7 +165,7 @@ export class ReportingAggregate {
         return workbook;
     }
 
-    async getDFSPSettlementDetailExport(secCtx: CallSecurityContext, participantId: string, matrixId: string): Promise<Buffer> {
+    async getDFSPSettlementDetailExport(secCtx: CallSecurityContext, participantId: string, matrixId: string, timeZoneOffset: string): Promise<Buffer> {
         this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_DFSP_SETTLEMENT_DETAIL_REPORT);
 
         this._logger.debug("Get DFSPSettlementDetailExport");
@@ -179,11 +176,11 @@ export class ReportingAggregate {
                 `DFSP Settlement Detail with participantId: ${participantId} and matrixId: ${matrixId} not found.`
             );
 
-        const workbook = await this.generateSettlementDetailExcelFile(result, participantId);
+        const workbook = await this.generateSettlementDetailExcelFile(result, participantId, timeZoneOffset);
         return workbook.xlsx.writeBuffer();
     }
 
-    async generateSettlementDetailExcelFile(data: any, participantId: string): Promise<any> {
+    async generateSettlementDetailExcelFile(data: any, participantId: string, timeZoneOffset: string): Promise<any> {
        let detailReports = []; 
 
         detailReports = data.map((detailReport:any) => ({...detailReport,
@@ -228,10 +225,6 @@ export class ReportingAggregate {
             });
         }
 
-        function formatDatetoISOString(value : any){
-            return new Date(value).toISOString();        
-        }
-
         const workbook = new Workbook();
         const dfspSettlementDetail = workbook.addWorksheet("DFSPSettlementDetailReport");
         
@@ -240,14 +233,14 @@ export class ReportingAggregate {
 
         const settlementId = dfspSettlementDetail.addRow(["Settlement ID", detailReports[0].matrixId]);
         addBordersToRow(settlementId);
-        const settlementDate = dfspSettlementDetail.addRow(["Settlement Created Date", formatDatetoISOString(detailReports[0].settlementDate)]);
+        const settlementDate = dfspSettlementDetail.addRow(["Settlement Created Date", this.utcToFormattedLocalTime(detailReports[0].settlementDate, timeZoneOffset)]);
         addBordersToRow(settlementDate);
         const dfspId = dfspSettlementDetail.addRow(["DFSPID", participantId]);
         addBordersToRow(dfspId);
         const dfspName = dfspSettlementDetail.addRow(["DFSPName", detailReports[0].dpspName]);
         addBordersToRow(dfspName);
-        const timeZoneOffset = dfspSettlementDetail.addRow(["TimeZoneOffset", "UTC±00:00"]);
-        addBordersToRow(timeZoneOffset);
+        const userLocalTimeZoneOffset = dfspSettlementDetail.addRow(["TimeZoneOffset",timeZoneOffset]);
+        addBordersToRow(userLocalTimeZoneOffset);
 
         dfspSettlementDetail.mergeCells("B1", "C1");
         dfspSettlementDetail.mergeCells("B2", "C2");
@@ -273,7 +266,7 @@ export class ReportingAggregate {
                 dataRow.transferId,
 
                 dataRow.transactionType,
-                formatDatetoISOString(dataRow.transactionDate),
+                this.utcToFormattedLocalTime(dataRow.transactionDate, timeZoneOffset),
                 dataRow.payerIdType,
                 dataRow.payerIdentifier,
                 dataRow.payeeIdType,
@@ -329,7 +322,7 @@ export class ReportingAggregate {
         return result;
     }
 
-    async getDFSPSettlementExport(secCtx: CallSecurityContext, participantId: string, matrixId: string): Promise<Buffer> {
+    async getDFSPSettlementExport(secCtx: CallSecurityContext, participantId: string, matrixId: string, timeZoneOffset: string): Promise<Buffer> {
         this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_DFSP_SETTLEMENT_REPORT);
 
         this._logger.debug("Get getDFSPSettlementExport");
@@ -340,11 +333,11 @@ export class ReportingAggregate {
                 `DFSP Settlement with participantId: ${participantId} and matrixId: ${matrixId} not found.`
             );
 
-        const workbook = await this.generateSettlementExcelFile(result);
+        const workbook = await this.generateSettlementExcelFile(result, timeZoneOffset);
         return workbook.xlsx.writeBuffer();
     }
 
-    async generateSettlementExcelFile(data: any): Promise<any> {
+    async generateSettlementExcelFile(data: any, timeZoneOffset: string): Promise<any> {
 
         // Function to add borders to a row
         function addBordersToRow(row: Row) {
@@ -428,10 +421,6 @@ export class ReportingAggregate {
                 return accumulator;
             },[]);
         }
-
-        function formatDatetoISOString(value : any){
-            return new Date(value).toISOString();        
-        }
         
         const workbook = new Workbook();
         const dfspSettlement = workbook.addWorksheet("DFSPSettlementReport");
@@ -440,15 +429,15 @@ export class ReportingAggregate {
 
         const settlementId = dfspSettlement.addRow(["Settlement ID", data[0].matrixId]);
         addBordersToRow(settlementId);
-        const settlementDate = dfspSettlement.addRow(["Settlement Created Date", formatDatetoISOString(data[0].settlementDate)]);
+        const settlementDate = dfspSettlement.addRow(["Settlement Created Date", this.utcToFormattedLocalTime(data[0].settlementDate, timeZoneOffset)]);
         addBordersToRow(settlementDate);
         const dfspId = dfspSettlement.addRow(["DFSPID", data[0].paramParticipantId]);
         addBordersToRow(dfspId);
         const dfspName = dfspSettlement.addRow(["DFSPName", data[0].paramParticipantName]);
         addBordersToRow(dfspName);
-        const timeZoneOffset = dfspSettlement.addRow(["TimeZoneOffset", "UTC±00:00"]);
+        const userLocalTimeZoneOffset = dfspSettlement.addRow(["TimeZoneOffset", timeZoneOffset]);
         applyFontBold("A5");
-        addBordersToRow(timeZoneOffset);
+        addBordersToRow(userLocalTimeZoneOffset);
 
         dfspSettlement.mergeCells("B1", "C1");
         dfspSettlement.mergeCells("B2", "C2");
@@ -691,7 +680,7 @@ export class ReportingAggregate {
         }
     }
 
-    async getDFSPSettlementStatementExport(secCtx: CallSecurityContext, participantId: string, startDate: number, endDate: number, currencyCode: string): Promise<Buffer> {
+    async getDFSPSettlementStatementExport(secCtx: CallSecurityContext, participantId: string, startDate: number, endDate: number, currencyCode: string, timeZoneOffset: string): Promise<Buffer> {
         this._enforcePrivilege(secCtx, ReportingPrivileges.REPORTING_VIEW_DFSP_SETTLEMENT_STATEMENT_REPORT);
 
         this._logger.debug("Get getDFSPSettlementStatementExport");
@@ -707,11 +696,11 @@ export class ReportingAggregate {
                 `DFSP Settlement Statement with participantId: ${participantId} not found.`
             );
 
-        const workbook = await this.generateSettlementStatementExcelFile(settlementStatements, startDate, endDate, currencyCode);
+        const workbook = await this.generateSettlementStatementExcelFile(settlementStatements, startDate, endDate, currencyCode, timeZoneOffset);
         return workbook.xlsx.writeBuffer();
     }
 
-    async generateSettlementStatementExcelFile(data: any, startDate: number, endDate: number, currencyCode: string): Promise<any> {
+    async generateSettlementStatementExcelFile(data: any, startDate: number, endDate: number, currencyCode: string, timeZoneOffset: string): Promise<any> {
 
         // Function to add borders to a row
         function addBordersToRow(row: Row) {
@@ -749,10 +738,6 @@ export class ReportingAggregate {
         function convertDecimalNumber(number: number) {
           return number.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
         }
-
-        function formatDatetoISOString(value : any){
-            return new Date(value).toISOString().replace(/\.\d+Z$/, "+00:00");
-        }
         
         const workbook = new Workbook();
         const dfspSettlementStatement = workbook.addWorksheet("DFSPSettlementStatementReport");
@@ -766,18 +751,18 @@ export class ReportingAggregate {
         applyFontBold("A2");
         addBordersToRow(dfspName);
 
-        const fromDate = dfspSettlementStatement.addRow(["From Date", formatDatetoISOString(startDate)]);
+        const fromDate = dfspSettlementStatement.addRow(["From Date", this.utcToFormattedLocalTime(startDate, timeZoneOffset)]);
         addBordersToRow(fromDate);
 
-        const toDate = dfspSettlementStatement.addRow(["To Date", formatDatetoISOString(endDate)]);
+        const toDate = dfspSettlementStatement.addRow(["To Date", this.utcToFormattedLocalTime(endDate, timeZoneOffset)]);
         addBordersToRow(toDate);
 
         const currency = dfspSettlementStatement.addRow(["Currency", currencyCode]);
         addBordersToRow(currency);
 
-        const timeZoneOffset = dfspSettlementStatement.addRow(["TimeZoneOffset", "UTC±00:00"]);
+        const userLocalTimeZoneOffset = dfspSettlementStatement.addRow(["TimeZoneOffset", timeZoneOffset]);
         applyFontBold("A6");
-        addBordersToRow(timeZoneOffset);
+        addBordersToRow(userLocalTimeZoneOffset);
 
         dfspSettlementStatement.mergeCells("B1", "C1");
         dfspSettlementStatement.mergeCells("B2", "C2");
@@ -794,7 +779,7 @@ export class ReportingAggregate {
         addBordersToRow(settlementStatement);
 
         // Populate the detail table with data
-        data.forEach((dataRow: { transferId: string; transactionDate: string; processDescription: string; fundsInAmount: number; fundsOutAmount: number; balance: number; statementCurrencyCode: string; accountNumber: string; }) => {
+        data.forEach((dataRow: { transferId: string; transactionDate: number; processDescription: string; fundsInAmount: number; fundsOutAmount: number; balance: number; statementCurrencyCode: string; accountNumber: string; }) => {
             const row = dfspSettlementStatement.addRow([
                 dataRow.transferId,
                 "",
@@ -809,7 +794,7 @@ export class ReportingAggregate {
             addBordersToRow(row);
 
             const dateTime = row.getCell(2);
-            dateTime.value = formatDatetoISOString(dataRow.transactionDate);
+            dateTime.value = this.utcToFormattedLocalTime(dataRow.transactionDate, timeZoneOffset);
 
             const fundsInAmountCell = row.getCell(4);
             fundsInAmountCell.value = convertDecimalNumber(dataRow.fundsInAmount);
@@ -840,4 +825,22 @@ export class ReportingAggregate {
 
         return result;
     }
+
+    private utcToFormattedLocalTime(utcTimestamp: number, timeZoneOffset: string): string {
+        
+        const utcOffsetRegex = /^UTC([+-])(\d{2}):(\d{2})$/;
+        const match = timeZoneOffset.match(utcOffsetRegex);
+        if (!match) {
+            throw new Error("Invalid timezone offset format. Expected format is UTC±HH:MM");
+        }
+
+        const [_, offsetSign, offsetHour, offsetMinutes] = match;
+        
+        const totalOffset = `${offsetSign}${offsetHour}:${offsetMinutes}`;
+        const localMoment = moment.utc(utcTimestamp).utcOffset(totalOffset);
+        const formattedString = localMoment.format("YYYY-MM-DDTHH:mm:ssZ");
+    
+        return formattedString;
+    }
+    
 }
