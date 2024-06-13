@@ -45,6 +45,7 @@ import { Row, Workbook } from "exceljs";
 import { ReportingPrivileges } from "./privilege_names";
 import { ISettlementStatement, IFundsMovementsByCurrency, IFundsMovment, FundsMovementTypes } from "@mojaloop/reporting-bc-types-lib";
 import moment from "moment-timezone";
+import {formatCommaSeparator, getMaxDecimalPlaces } from "./utils";
 export class ReportingAggregate {
     private _logger: ILogger;
     private _auditClient: IAuditClient;
@@ -101,7 +102,7 @@ export class ReportingAggregate {
     }
 
     async generateExcelFile(data: any, timeZoneOffset: string): Promise<any> {
-
+        
         // Function to add borders to a row
         function addBordersToRow(row: Row) {
             row.eachCell((cell) => {
@@ -123,6 +124,12 @@ export class ReportingAggregate {
                 }
                 cell.alignment = { vertical: "middle" };
             });
+        }
+
+        function calculateSettlementTransfer(participantDebitBalance: number,participantCreditBalance:number):string {
+            const transfer = participantDebitBalance - participantCreditBalance;
+            const decimalForSettlment = getMaxDecimalPlaces(participantDebitBalance, participantCreditBalance);
+            return transfer.toFixed(decimalForSettlment);
         }
 
         const workbook = new Workbook();
@@ -155,7 +162,7 @@ export class ReportingAggregate {
 
             const balanceCell = row.getCell(4); // Get the specific cell you want to format (index starts from 1)
 
-            balanceCell.value = (dataRow.participantDebitBalance - dataRow.participantCreditBalance).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+            balanceCell.value = formatCommaSeparator(calculateSettlementTransfer(dataRow.participantDebitBalance, dataRow.participantCreditBalance));
             balanceCell.alignment = { horizontal: "right" }; // Apply alignment to the cell
 
             addBordersToRow(row);
@@ -281,10 +288,10 @@ export class ReportingAggregate {
             const transactionDateCell = row.getCell(7); 
 
             const receivedAmountCell = row.getCell(12); 
-            receivedAmountCell.value = (dataRow.receivedAmount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+            receivedAmountCell.value = formatCommaSeparator(dataRow.receivedAmount);
  
             const sentAmountCell = row.getCell(13); 
-            sentAmountCell.value = (dataRow.sentAmount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+            sentAmountCell.value = formatCommaSeparator(dataRow.sentAmount);
            
             addBordersToRow(row);
 
@@ -338,7 +345,6 @@ export class ReportingAggregate {
     }
 
     async generateSettlementExcelFile(data: any, timeZoneOffset: string): Promise<any> {
-
         // Function to add borders to a row
         function addBordersToRow(row: Row) {
             row.eachCell((cell) => {
@@ -381,18 +387,23 @@ export class ReportingAggregate {
             dfspSettlement.getCell(cell).font = { bold: true };
         }
 
-        function formatNetPosition(netPosition: number) {
-            return netPosition < 0
-                ? `(${convertDecimalNumber(netPosition.toString().replace("-", ""))})`
-                : convertDecimalNumber(netPosition);
+        function formatNetPosition(netPosition: number | string) {
+            return Number(netPosition) < 0
+                ? `(${formatCommaSeparator(netPosition.toString().replace("-", ""))})`
+                : formatCommaSeparator(netPosition);
         }
 
-        function convertDecimalNumber(number: number | string) {
-          return Number(number).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
+        function calculateTotalAmount(amount1: number,amount2: number):string {
+            const totalAmount = amount1 + amount2;
+            const decimalForSettlment = getMaxDecimalPlaces(amount1, amount2);
+            return totalAmount.toFixed(decimalForSettlment);
         }
 
-        function formatCommaSeparator(number: number) {
-            return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        function calculateNetPosition(totalAmountReceived: number, totalAmountSent: number, isFormat:boolean):string {
+            const netPosition = totalAmountReceived - totalAmountSent;
+            const decimalForSettlment = getMaxDecimalPlaces(totalAmountReceived, totalAmountSent);
+            if(isFormat) return formatNetPosition(netPosition.toFixed(decimalForSettlment));
+            return netPosition.toFixed(decimalForSettlment);
         }
         
         function getAggregatedNetPositions() {
@@ -410,12 +421,13 @@ export class ReportingAggregate {
                 const { currency } = dataRow;
                 const index = accumulator.findIndex(item => item.currencyCode === currency);
 
+                const netPositionValue =  Number(calculateNetPosition(dataRow.totalAmountReceived, dataRow.totalAmountSent, false));
                 if (index === -1) {
-                 const netPositionValue =  dataRow.totalAmountReceived - dataRow.totalAmountSent;
+
                  accumulator.push({ currencyCode:currency,value:netPositionValue });
                 } else {
-                    const value =  dataRow.totalAmountReceived - dataRow.totalAmountSent;
-                    accumulator[index].value += value;
+
+                    accumulator[index].value = Number(calculateTotalAmount(accumulator[index].value, netPositionValue));
                 }
                 
                 return accumulator;
@@ -505,16 +517,16 @@ export class ReportingAggregate {
             totalTransactionCell.value = formatCommaSeparator(dataRow.totalSentCount + dataRow.totalReceivedCount);
 
             const totalAmountSentCell = row.getCell(4);
-            totalAmountSentCell.value = convertDecimalNumber(dataRow.totalAmountSent);
+            totalAmountSentCell.value = formatCommaSeparator(dataRow.totalAmountSent);
 
             const totalAmountReceivedCell = row.getCell(6);
-            totalAmountReceivedCell.value = convertDecimalNumber(dataRow.totalAmountReceived);
+            totalAmountReceivedCell.value = formatCommaSeparator(dataRow.totalAmountReceived);
             
             const totalValueAllTransactions = row.getCell(8);
-            totalValueAllTransactions.value = convertDecimalNumber(dataRow.totalAmountSent + dataRow.totalAmountReceived);
+            totalValueAllTransactions.value = formatCommaSeparator(calculateTotalAmount(dataRow.totalAmountSent, dataRow.totalAmountReceived));
 
             const netPositionVsEachDFSP = row.getCell(9);
-            netPositionVsEachDFSP.value = formatNetPosition(dataRow.totalAmountReceived - dataRow.totalAmountSent);
+            netPositionVsEachDFSP.value = calculateNetPosition(dataRow.totalAmountReceived, dataRow.totalAmountSent, true);
 
             addBordersToRow(row);
             totalSentCount.alignment = { vertical:"middle",horizontal:"right" };
@@ -546,7 +558,7 @@ export class ReportingAggregate {
             ]);
 
             const aggreateValue = row.getCell(2);
-            aggreateValue.value = convertDecimalNumber(dataRow.value);
+            aggreateValue.value = formatCommaSeparator(dataRow.value);
 
             addBordersToRow(row);
             aggreateValue.alignment = { vertical:"middle",horizontal:"right" };
@@ -651,11 +663,11 @@ export class ReportingAggregate {
         for (const statement of settlementStatement) {
             if(this.isFundIn(statement.processDescription)) {
                 statement.fundsInAmount = Number(statement.amount);
-                statement.fundsOutAmount = 0.00;
+                statement.fundsOutAmount = 0;
             }
             if(this.isFundOut(statement.processDescription)) {
                 statement.fundsOutAmount = Number(statement.amount);
-                statement.fundsInAmount = 0.00;
+                statement.fundsInAmount = 0;
             }
         }
     }
@@ -735,9 +747,7 @@ export class ReportingAggregate {
             dfspSettlementStatement.getCell(cell).font = { bold: true };
         }
 
-        function convertDecimalNumber(number: number) {
-          return number.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, "$&,");
-        }
+        
         
         const workbook = new Workbook();
         const dfspSettlementStatement = workbook.addWorksheet("DFSPSettlementStatementReport");
@@ -797,13 +807,13 @@ export class ReportingAggregate {
             dateTime.value = this.utcToFormattedLocalTime(dataRow.transactionDate, timeZoneOffset);
 
             const fundsInAmountCell = row.getCell(4);
-            fundsInAmountCell.value = convertDecimalNumber(dataRow.fundsInAmount);
+            fundsInAmountCell.value = formatCommaSeparator(dataRow.fundsInAmount);
 
             const fundsOutAmountCell = row.getCell(5);
-            fundsOutAmountCell.value = convertDecimalNumber(dataRow.fundsOutAmount);
+            fundsOutAmountCell.value = formatCommaSeparator(dataRow.fundsOutAmount);
 
             const balanceCell = row.getCell(6);
-            balanceCell.value = convertDecimalNumber(dataRow.balance);
+            balanceCell.value = formatCommaSeparator(dataRow.balance);
 
             dateTime.alignment = { vertical:"middle",horizontal:"right" };
             fundsInAmountCell.alignment = { vertical:"middle",horizontal:"right" };
@@ -842,5 +852,5 @@ export class ReportingAggregate {
     
         return formattedString;
     }
-    
+
 }
