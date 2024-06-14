@@ -32,13 +32,16 @@
 
  export function formatCommaSeparator(number: string | number): string {
     const numStr = number.toString();
-    const parts = numStr.split(".");
-    const integerPart = parts[0];
-    const decimalPart = parts.length > 1 ? "." + parts[1] : "";
+    const [integerPart, decimalPart] = numStr.split(".");
 
-    const formattedIntegerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    const formattedInteger = integerPart
+        .split("")
+        .reverse()
+        .map((digit, index) => (index > 0 && index % 3 === 0 ? digit + "," : digit))
+        .reverse()
+        .join("");
 
-    return formattedIntegerPart + decimalPart;
+    return decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
 }
 
 export function getDecimalPlaces(value: string | number): number {
