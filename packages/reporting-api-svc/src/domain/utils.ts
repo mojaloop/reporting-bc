@@ -30,8 +30,15 @@
 
  "use strict";
 
-export function formatCommaSeparator(number: string | number): string {
-    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+ export function formatCommaSeparator(number: string | number): string {
+    const numStr = number.toString();
+    const parts = numStr.split(".");
+    const integerPart = parts[0];
+    const decimalPart = parts.length > 1 ? "." + parts[1] : "";
+
+    const formattedIntegerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+    return formattedIntegerPart + decimalPart;
 }
 
 export function getDecimalPlaces(value: string | number): number {
