@@ -275,7 +275,7 @@ export class MongoReportingRepo implements IReportingRepo {
                                                     "recieved"
                                                 ]
                                         },
-                            "amount": { $toDouble: "$amount" },
+                            "amount": { $toDecimal: "$amount" },
                             "currency": "$currencyCode"
                         }
                     },
@@ -340,9 +340,9 @@ export class MongoReportingRepo implements IReportingRepo {
                             paramParticipantId: "$_id.paramParticipantId",
                             relateParticipantId: "$_id.relateParticipantId",
                             currency: "$_id.currency",
-                            totalAmountSent: 1,
+                            totalAmountSent: { $toDouble: "$totalAmountSent" },
                             totalSentCount: 1,
-                            totalAmountReceived: 1,
+                            totalAmountReceived: { $toDouble: "$totalAmountReceived" },
                             totalReceivedCount: 1
                         }
                     },	
