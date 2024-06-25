@@ -729,7 +729,7 @@ export class ReportingAggregate {
                     cell.value === "To Date" ||
                     cell.value === "Currency" ||
                     cell.value === "TimeZoneOffSet" ||
-                    cell.value === "Transfer Id" ||
+                    cell.value === "Journal Entry Id" ||
                     cell.value === "Date Time" ||
                     cell.value === "Process Description" ||
                     cell.value === "Funds In" ||
