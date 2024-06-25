@@ -784,14 +784,14 @@ export class ReportingAggregate {
         // Put empty rowsettlementInitiation
         dfspSettlementStatement.addRow([]);
         // Define the detail table fields
-        const settlementStatement = dfspSettlementStatement.addRow(["Transfer Id", "Date Time", "Process Description", "Funds In", "Funds Out", "Balance", "Currency", "Account Number"]);
+        const settlementStatement = dfspSettlementStatement.addRow(["Journal Entry Id", "Date Time", "Process Description", "Funds In", "Funds Out", "Balance", "Currency", "Account Number"]);
        
         addBordersToRow(settlementStatement);
 
         // Populate the detail table with data
-        data.forEach((dataRow: { transferId: string; transactionDate: number; processDescription: string; fundsInAmount: number; fundsOutAmount: number; balance: number; statementCurrencyCode: string; accountNumber: string; }) => {
+        data.forEach((dataRow: { journalEntryId: string; transactionDate: number; processDescription: string; fundsInAmount: number; fundsOutAmount: number; balance: number; statementCurrencyCode: string; accountNumber: string; }) => {
             const row = dfspSettlementStatement.addRow([
-                dataRow.transferId,
+                dataRow.journalEntryId,
                 "",
                 dataRow.processDescription,
                 "",
