@@ -459,7 +459,7 @@ export class MongoReportingRepo implements IReportingRepo {
                     $project: {
                       "id": 1,
                       "name": 1,
-                      "transferId": "$fundsMovements.transferId",
+                      "journalEntryId": "$fundsMovements.journalEntryId",
                       "transactionDate": "$fundsMovements.approvedDate",
                       "processDescription": "$fundsMovements.type",
                       "amount": "$fundsMovements.amount",

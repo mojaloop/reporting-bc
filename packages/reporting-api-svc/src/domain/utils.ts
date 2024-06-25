@@ -34,14 +34,19 @@
     const numStr = number.toString();
     const [integerPart, decimalPart] = numStr.split(".");
 
-    const formattedInteger = integerPart
+    const isNegative = integerPart.substring(0, 1) === "-";
+    const absIntegerPart = isNegative ? integerPart.slice(1) : integerPart;
+
+    const formattedInteger = absIntegerPart
         .split("")
         .reverse()
         .map((digit, index) => (index > 0 && index % 3 === 0 ? digit + "," : digit))
         .reverse()
         .join("");
 
-    return decimalPart ? `${formattedInteger}.${decimalPart}` : formattedInteger;
+    const result = isNegative ? `-${formattedInteger}` : formattedInteger;
+
+    return decimalPart ? `${result}.${decimalPart}` : result;
 }
 
 export function getDecimalPlaces(value: string | number): number {

@@ -122,7 +122,7 @@ export declare interface IParticipantReport {
                | "MATRIX_SETTLED_AUTOMATIC_ADJUSTMENT_DEBIT"| "OPERATOR_LIQUIDITY_ADJUSTMENT_CREDIT"| "OPERATOR_LIQUIDITY_ADJUSTMENT_DEBIT";
         currencyCode: string;
         amount: string;
-        transferId: string | null;
+        journalEntryId: string | null;
         extReference: string | null;
         note: string | null;
     }[];

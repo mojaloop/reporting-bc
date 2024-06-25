@@ -42,7 +42,7 @@ export function GetReportingConfigSet(
     appVersion: string
 ): ConfigurationClient {
     const configClient = new ConfigurationClient(
-        bcName, appName, appVersion, CONFIGSET_VERSION, configProvider
+        bcName, appVersion, configProvider
     );
 
     return configClient;
