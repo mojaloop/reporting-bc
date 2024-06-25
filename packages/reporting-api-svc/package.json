@@ -41,7 +41,7 @@
         "@mojaloop/auditing-bc-public-types-lib": "~0.5.2",
         "@mojaloop/logging-bc-client-lib": "~0.5.8",
         "@mojaloop/logging-bc-public-types-lib": "~0.5.4",
-        "@mojaloop/participant-bc-public-types-lib": "~0.5.5",
+        "@mojaloop/participant-bc-public-types-lib": "~0.6.3",
         "@mojaloop/platform-configuration-bc-public-types-lib": "~0.6.1",
         "@mojaloop/platform-configuration-bc-client-lib": "~0.6.3",
         "@mojaloop/platform-shared-lib-observability-client-lib": "~0.5.8",

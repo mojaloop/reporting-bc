@@ -185,8 +185,10 @@ export class Service {
 
             // setup privileges - bootstrap app privs and get priv/role associations
             authorizationClient = new AuthorizationClient(
-                BC_NAME, APP_NAME, APP_VERSION,
-                AUTH_Z_SVC_BASEURL, logger.createChild("AuthorizationClient"),
+                BC_NAME, 
+                APP_VERSION,
+                AUTH_Z_SVC_BASEURL, 
+                logger.createChild("AuthorizationClient"),
                 authRequester,
                 messageConsumer
             );
