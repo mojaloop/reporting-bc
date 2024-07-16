@@ -94,7 +94,7 @@ const kafkaConsumerOptions: MLKafkaJsonConsumerOptions = {
     kafkaGroupId: `${BC_NAME}_${APP_NAME}`
 };
 
-const PARTICIPANTS_CLIENT_CACHE_MS = 10_000;
+const PARTICIPANTS_CLIENT_CACHE_MS = 0;
 let globalLogger: ILogger;
 
 export class Service {
