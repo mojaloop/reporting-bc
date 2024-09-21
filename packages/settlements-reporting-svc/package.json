@@ -49,7 +49,7 @@
         "@mojaloop/security-bc-public-types-lib": "~0.6.1",
         "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.164",
         "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.103",
-        "express": "^4.18.3",
+        "express": "^4.20.0",
         "mongodb": "~5.5.0"
     },
     "devDependencies": {
