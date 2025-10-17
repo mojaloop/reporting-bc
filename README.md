@@ -1,4 +1,11 @@
-# Mojaloop vNext Reporting BC
+# [DEPRECATED] Mojaloop vNext Reporting BC
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+**Deprecation Notice**: This repo was deprecated as of October 2025. It is no longer maintained, and is no longer referenced by any releases of Mojaloop.
+
+For a list of active Mojaloop repos, please refer to [Mojaloop documentation](https://docs.mojaloop.io) or [Mojaloop GitHub Org](https://github.com/mojaloop).
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------
 
 **EXPERIMENTAL** vNext Reporting Bounded Context Mono Repository
 
